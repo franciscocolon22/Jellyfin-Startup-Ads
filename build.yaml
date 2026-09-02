@@ -1,0 +1,13 @@
+name: "Jellyfin Startup Ads"
+guid: "6d1a9b6e-6b3e-4f9a-9c2d-3a7f1e2c4b90"
+version: "1.0.0.0"
+targetAbi: "10.10.0.0"
+framework: "net8.0"
+overview: "Anuncios multimedia al iniciar Jellyfin Web."
+description: >
+  Muestra automáticamente anuncios (imagen, vídeo o texto) en un overlay modal o a
+  pantalla completa cuando un usuario abre Jellyfin Web. Administrable desde el Dashboard.
+category: "General"
+owner: "Francisco Colon"
+artifacts:
+  - "Jellyfin.Plugin.StartupAds.dll"

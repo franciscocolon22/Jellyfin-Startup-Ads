@@ -1,0 +1,21 @@
+[
+    {
+        "guid": "6d1a9b6e-6b3e-4f9a-9c2d-3a7f1e2c4b90",
+        "name": "Jellyfin Startup Ads",
+        "description": "Muestra automáticamente anuncios multimedia (imagen, vídeo o texto) al abrir Jellyfin Web, administrables desde el Dashboard.",
+        "overview": "Sistema de anuncios / presentaciones multimedia al iniciar Jellyfin.",
+        "owner": "Francisco Colon",
+        "category": "General",
+        "imageUrl": "",
+        "versions": [
+            {
+                "version": "1.0.0.0",
+                "changelog": "Versión inicial: overlay modal/fullscreen, imagen/vídeo/texto, cuenta regresiva, botón omitir configurable, programación, segmentación por usuario, escaneo automático de carpeta, estadísticas opcionales.",
+                "targetAbi": "10.10.0.0",
+                "sourceUrl": "https://example.com/jellyfin-startup-ads/jellyfin-startup-ads_1.0.0.0.zip",
+                "checksum": "REPLACE_WITH_MD5_OF_ZIP",
+                "timestamp": "2026-09-02T00:00:00Z"
+            }
+        ]
+    }
+]

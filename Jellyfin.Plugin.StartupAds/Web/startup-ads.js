@@ -150,13 +150,18 @@
     function fetchJson(api, path) {
         var url = api.getUrl(path);
         if (typeof api.ajax === 'function') {
+            // ApiClient.ajax builds the proper "Authorization: MediaBrowser Token=..." header.
             return api.ajax({ type: 'GET', url: url, dataType: 'json' });
         }
-        return fetch(url, { headers: { 'X-Emby-Token': api.accessToken() } })
+        return fetch(url, { headers: { 'Authorization': authHeader(api) } })
             .then(function (r) {
                 if (!r.ok) { throw new Error('HTTP ' + r.status); }
                 return r.json();
             });
+    }
+
+    function authHeader(api) {
+        return 'MediaBrowser Token="' + api.accessToken() + '", Client="Jellyfin Web", Device="StartupAds", DeviceId="startup-ads", Version="1.0"';
     }
 
     function postTrack(api, adId, kind) {
@@ -165,13 +170,14 @@
             if (typeof api.ajax === 'function') {
                 api.ajax({ type: 'POST', url: url });
             } else {
-                fetch(url, { method: 'POST', headers: { 'X-Emby-Token': api.accessToken() } });
+                fetch(url, { method: 'POST', headers: { 'Authorization': authHeader(api) } });
             }
         } catch (e) { /* analytics are best-effort */ }
     }
 
     function mediaUrl(api, relative) {
-        return api.getUrl(relative, { api_key: api.accessToken() });
+        // "ApiKey" (capitalised) is honoured regardless of the server's legacy-auth setting.
+        return api.getUrl(relative, { ApiKey: api.accessToken() });
     }
 
     /* ----------------------------------------------------------------

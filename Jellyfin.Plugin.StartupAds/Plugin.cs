@@ -6,6 +6,7 @@ using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
+using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.StartupAds
 {
@@ -14,10 +15,20 @@ namespace Jellyfin.Plugin.StartupAds
     /// </summary>
     public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     {
-        public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer)
+        public Plugin(
+            IApplicationPaths applicationPaths,
+            IXmlSerializer xmlSerializer,
+            ILogger<Plugin> logger)
             : base(applicationPaths, xmlSerializer)
         {
             Instance = this;
+
+            // Emitted once at load so the server log shows exactly what Jellyfin resolved.
+            logger.LogInformation(
+                "[StartupAds] Plugin loaded. Name='{Name}' Id={Id} Version={Version}",
+                Name,
+                Id,
+                Version);
         }
 
         public static Plugin? Instance { get; private set; }
@@ -36,7 +47,10 @@ namespace Jellyfin.Plugin.StartupAds
             {
                 new PluginPageInfo
                 {
-                    Name = this.Name,
+                    // "Name" is the route key (configurationpage?name=startupads); keep it
+                    // spaceless and stable. "DisplayName" is what the dashboard shows.
+                    Name = "startupads",
+                    DisplayName = Name,
                     EmbeddedResourcePath = string.Format(
                         CultureInfo.InvariantCulture,
                         "{0}.Configuration.configPage.html",

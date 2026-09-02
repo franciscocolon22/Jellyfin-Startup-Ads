@@ -1,15 +1,14 @@
 {
     "category": "General",
-    "changelog": "v1.2.0 — Inyección del script del cliente reescrita: ahora es en memoria mediante middleware ASP.NET Core (IStartupFilter), sin escribir nunca en jellyfin-web/index.html. Resistente a actualizaciones de Jellyfin Web, compatible con Docker y sistemas de archivos de solo lectura, sin paso de limpieza al desinstalar. Nuevas opciones: InjectClientScript y WebBasePath. Tests de integración del pipeline (TestServer). Mantiene todas las correcciones de v1.1.0 (seguridad de rutas, symlinks, UNC, magic bytes, horarios que cruzan medianoche, tracking, cambio de usuario, etc.).",
+    "changelog": "v1.3.0 — Correcciones tras la prueba en servidor real. Backend: se elimina el uso de la política 'DefaultAuthorization' (retirada en Jellyfin 10.11) que devolvía HTTP 500 en Config/Media/Track — ahora los endpoints de usuario usan [Authorize] (política por defecto); Config es tolerante a fallos. Frontend del Dashboard: la página de configuración se engancha a 'viewshow' vía document (soporta el reciclado de páginas de Jellyfin), el modal de anuncios se traslada a <body> para escapar de los contenedores con 'transform' — corrige los botones 'Guardar anuncio' y 'Cancelar' y el posicionamiento del modal. Modal rediseñado (cabecera y pie fijos, cuerpo con scroll, responsive, foco/ESC/atrapado de foco). URLs de media con 'ApiKey' en vez de 'api_key'. Metadatos del plugin: identificador de página 'startupads' + DisplayName. Se mantienen todas las correcciones de v1.1.0 y v1.2.0.",
     "description": "Muestra automáticamente anuncios multimedia (imagen, vídeo o texto) al abrir Jellyfin Web, administrables desde el Dashboard: countdown, omitir, programación, segmentación por usuario, prioridades, aleatorio, botones, estadísticas y directorio externo configurable.",
     "guid": "6d1a9b6e-6b3e-4f9a-9c2d-3a7f1e2c4b90",
     "name": "Jellyfin Startup Ads",
     "overview": "Anuncios multimedia al iniciar Jellyfin Web.",
     "owner": "franciscocolon22",
     "targetAbi": "10.11.0.0",
-    "framework": "net9.0",
-    "version": "1.2.0.0",
-    "timestamp": "2026-09-02T18:00:00Z",
+    "version": "1.3.0.0",
+    "timestamp": "2026-09-02T19:00:00Z",
     "status": "Active",
     "autoUpdate": true
 }

@@ -17,9 +17,13 @@ namespace Jellyfin.Plugin.StartupAds.Api
     /// <summary>
     /// HTTP endpoints for the Startup Ads plugin.
     /// <list type="bullet">
-    ///   <item><b>Anonymous</b>: only <c>ClientScript</c> / <c>ClientStyle</c> (static, same for everyone).</item>
-    ///   <item><b>Authenticated user</b>: <c>Config</c>, <c>Media</c>, <c>Media/Background</c>, <c>Track</c>.</item>
-    ///   <item><b>Administrator (RequiresElevation)</b>: everything under <c>Admin/</c>.</item>
+    ///   <item><b>Anonymous</b> (<c>[AllowAnonymous]</c>): only <c>ClientScript</c> / <c>ClientStyle</c>
+    ///         (static assets, identical for every viewer).</item>
+    ///   <item><b>Authenticated user</b> (<c>[Authorize]</c> → Jellyfin's default policy): <c>Config</c>,
+    ///         <c>Media</c>, <c>Media/Background</c>, <c>Track</c>. NOTE: Jellyfin 10.11 removed the named
+    ///         <c>"DefaultAuthorization"</c> policy — a bare <c>[Authorize]</c> uses
+    ///         <c>AuthorizationOptions.DefaultPolicy</c> (an authenticated Jellyfin user).</item>
+    ///   <item><b>Administrator</b> (<c>[Authorize(Policy = "RequiresElevation")]</c>): everything under <c>Admin/</c>.</item>
     /// </list>
     /// </summary>
     [ApiController]
@@ -93,31 +97,37 @@ namespace Jellyfin.Plugin.StartupAds.Api
         // Authenticated user API
         // ---------------------------------------------------------------------
         [HttpGet("Config")]
-        [Authorize(Policy = "DefaultAuthorization")]
+        [Authorize]
         public ActionResult<ClientBootstrapDto> GetConfig()
         {
             var cfg = Config;
-            var userId = CurrentUserId();
-            var now = DateTime.Now;
-
-            var dto = BuildBootstrap(cfg, previewMode: false);
-
-            if (!dto.Enabled)
-            {
-                return dto;
-            }
-
-            foreach (var ad in _manager.GetActiveForUser(userId, now))
-            {
-                dto.Ads.Add(ToClientDto(ad, cfg));
-            }
-
             Response.Headers.CacheControl = "private, no-store";
+
+            ClientBootstrapDto dto;
+            try
+            {
+                dto = BuildBootstrap(cfg, previewMode: false);
+
+                if (dto.Enabled)
+                {
+                    foreach (var ad in _manager.GetActiveForUser(CurrentUserId(), DateTime.Now))
+                    {
+                        dto.Ads.Add(ToClientDto(ad, cfg));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Fail safe: a plugin error must never break Jellyfin Web. Return "no ads".
+                _logger.LogError(ex, "[StartupAds] Failed to build client config; returning an empty response.");
+                return new ClientBootstrapDto { Enabled = false };
+            }
+
             return dto;
         }
 
         [HttpGet("Media/{adId}")]
-        [Authorize(Policy = "DefaultAuthorization")]
+        [Authorize]
         public ActionResult GetMedia([FromRoute] Guid adId)
         {
             var check = ResolveAccessibleAd(adId, out var ad);
@@ -137,7 +147,7 @@ namespace Jellyfin.Plugin.StartupAds.Api
         }
 
         [HttpGet("Media/{adId}/Background")]
-        [Authorize(Policy = "DefaultAuthorization")]
+        [Authorize]
         public ActionResult GetBackground([FromRoute] Guid adId)
         {
             var check = ResolveAccessibleAd(adId, out var ad);
@@ -162,7 +172,7 @@ namespace Jellyfin.Plugin.StartupAds.Api
         }
 
         [HttpPost("Track/{adId}/{kind}")]
-        [Authorize(Policy = "DefaultAuthorization")]
+        [Authorize]
         public ActionResult Track([FromRoute] Guid adId, [FromRoute] string kind)
         {
             if (!AdvertisementManager.IsValidTrackingEvent(kind))

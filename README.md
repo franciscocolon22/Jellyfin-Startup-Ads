@@ -12,9 +12,23 @@ desde el Dashboard, con controles de seguridad adecuados.
 |---|---|
 | Jellyfin | **10.11.11** (targetAbi `10.11.0.0`) |
 | .NET | **9.0** |
-| Versión del plugin | **1.2.0.0** |
+| Versión del plugin | **1.3.0.0** |
 | Paquetes | `Jellyfin.Controller` / `Jellyfin.Model` 10.11.11 (`ExcludeAssets=runtime`) |
 | Licencia | MIT |
+
+---
+
+## Correcciones de v1.3.0 (tras la primera prueba en servidor real)
+
+| Síntoma en el servidor | Causa raíz (verificada en el código de Jellyfin 10.11.11) | Corrección |
+|---|---|---|
+| El overlay **nunca aparecía** en Jellyfin Web; `GET /StartupAds/Config` daba **HTTP 500** | Jellyfin 10.11 **eliminó** la política con nombre `"DefaultAuthorization"`. Un `[Authorize(Policy="DefaultAuthorization")]` referencia una política inexistente → ASP.NET lanza `InvalidOperationException` → 500. Afectaba a `Config`, `Media`, `Media/Background`, `Track`. | Los endpoints de usuario usan ahora `[Authorize]` a secas (política por defecto = usuario autenticado). `GetConfig` además es tolerante a fallos: ante excepción devuelve `Enabled=false` en vez de 500. |
+| El botón **«Guardar anuncio»** recargaba la página o no hacía nada; **«Cancelar»** no cerraba el modal | La página de configuración buscaba su raíz con `document.querySelector('#id')`. Jellyfin recicla **hasta 3 contenedores de página** (`pageContainerCount = 3`) → podía haber varios `#startupAdsConfigPage` y los listeners se ataban al DOM equivocado. | El script se engancha a `document`.`viewshow` y usa `e.target` (la vista viva). Guard por elemento (`view.__saInit`). |
+| El modal salía **descentrado a la derecha** y los botones quedaban recortados/inalcanzables | `.mainAnimatedPages` usa `transform` para las animaciones de vista → un hijo `position:fixed` se posiciona respecto a ese ancestro, no respecto al *viewport*. | El modal se **traslada a `document.body`** al abrir; así es un overlay real del *viewport*, con cabecera y pie fijos, cuerpo con scroll y responsive. |
+| (potencial) La media no cargaba en servidores con *legacy auth* desactivada | `<video>`/`<img>` usaban `?api_key=`, que en 10.11 solo funciona con `EnableLegacyAuthorization`. | Se usa `?ApiKey=` (siempre válido) y `ApiClient.ajax` (cabecera `Authorization` correcta). |
+| El plugin no se identificaba bien en el **catálogo** | Sin *GitHub Release* publicada, el `sourceUrl` del manifest da 404 y el catálogo no puede resolver el paquete. La instalación manual **sin** el `meta.json` incluido hace que Jellyfin use el nombre de la carpeta. | El `meta.json` es correcto (`guid`/`name`/`version`/`targetAbi` verificados contra `PluginManifest` de 10.11.11). Hay que **publicar la Release** e instalar el ZIP **completo** (DLL + `meta.json`). `Plugin.cs` registra su identidad en el log al cargar. |
+
+Se conservan íntegras todas las correcciones de v1.1.0 (seguridad de rutas, symlinks, UNC, magic bytes, medianoche, tracking, cambio de usuario…) y de v1.2.0 (inyección en memoria).
 
 ---
 
@@ -86,7 +100,7 @@ DLL resultante: `Jellyfin.Plugin.StartupAds/bin/Release/net9.0/Jellyfin.Plugin.S
 ### Empaquetado (ZIP instalable)
 
 ```powershell
-pwsh ./build/package.ps1              # -> artifacts/jellyfin-startup-ads_1.2.0.0.zip
+pwsh ./build/package.ps1              # -> artifacts/jellyfin-startup-ads_1.3.0.0.zip
 ```
 
 El ZIP contiene únicamente `Jellyfin.Plugin.StartupAds.dll` y `meta.json`
@@ -99,8 +113,8 @@ Proceso de release:
 
 1. `pwsh ./build/package.ps1`
 2. Copiar el MD5 impreso a `manifest.json` (`checksum`).
-3. `git tag v1.2.0 && git push origin v1.2.0`
-4. Crear el *GitHub Release* `v1.2.0` y subir el ZIP como asset.
+3. `git tag v1.3.0 && git push origin v1.3.0`
+4. Crear el *GitHub Release* `v1.3.0` y subir el ZIP como asset.
 5. Commit de `manifest.json`.
 
 ---
@@ -122,10 +136,10 @@ Luego **Catálogo** → *Jellyfin Startup Ads* → **Instalar** → reiniciar Je
 **Linux** (paquete `.deb`/`systemd`, ruta de datos por defecto):
 
 ```bash
-sudo mkdir -p "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.2.0.0"
-sudo unzip artifacts/jellyfin-startup-ads_1.2.0.0.zip \
-     -d "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.2.0.0"
-sudo chown -R jellyfin:jellyfin "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.2.0.0"
+sudo mkdir -p "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.3.0.0"
+sudo unzip artifacts/jellyfin-startup-ads_1.3.0.0.zip \
+     -d "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.3.0.0"
+sudo chown -R jellyfin:jellyfin "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.3.0.0"
 sudo systemctl restart jellyfin
 ```
 
@@ -133,7 +147,7 @@ sudo systemctl restart jellyfin
 > paquete oficial; en Docker suele ser `/config`. Compruébala en
 > Dashboard → **Panel de control → Rutas**.
 
-**Windows**: `%ProgramData%\Jellyfin\Server\plugins\Jellyfin Startup Ads_1.2.0.0\`
+**Windows**: `%ProgramData%\Jellyfin\Server\plugins\Jellyfin Startup Ads_1.3.0.0\`
 (descomprimir el ZIP ahí) y reiniciar el servicio Jellyfin.
 
 ### Verificación
@@ -285,7 +299,7 @@ visualización** aunque coincidan `timeout` y `video ended`.
 
 ---
 
-## Mecanismo de inyección en Jellyfin Web (v1.2.0)
+## Mecanismo de inyección en Jellyfin Web (v1.3.0)
 
 **Jellyfin core, incluida la 10.11.11, NO tiene ninguna API oficial** para que un
 plugin añada un script a `jellyfin-web`. El PR que lo proponía
@@ -344,7 +358,7 @@ El JS y el CSS los sirve el backend del plugin (`GET StartupAds/ClientScript` /
 ## Docker
 
 Con `linuxserver/jellyfin` o la imagen oficial, `jellyfin-web` forma parte de la
-capa de imagen (solo lectura). La inyección **en memoria** de v1.2.0 no toca esos
+capa de imagen (solo lectura). La inyección **en memoria** de v1.3.0 no toca esos
 archivos, así que funciona igual que en una instalación nativa. Solo hay que
 montar la carpeta de anuncios como volumen y configurar esa ruta en el plugin:
 
@@ -359,7 +373,7 @@ services:
       - ./startup-ads:/startup-ads        # <- carpeta de anuncios
 ```
 
-Plugins: `/config/plugins/Jellyfin Startup Ads_1.2.0.0/` (dentro del volumen
+Plugins: `/config/plugins/Jellyfin Startup Ads_1.3.0.0/` (dentro del volumen
 `config`). Ruta de anuncios en el plugin: `/startup-ads`.
 
 ---
@@ -384,11 +398,15 @@ Plugins: `/config/plugins/Jellyfin Startup Ads_1.2.0.0/` (dentro del volumen
 | El plugin no aparece en el Dashboard | ZIP en la carpeta equivocada; comprobar `<DataDir>/plugins/` y reiniciar. |
 | No aparece ningún anuncio | ¿`Enabled` y `ShowOnStartup`? ¿Reiniciaste Jellyfin tras instalar? ¿La ruta valida OK? ¿Hay anuncios activos y en horario? |
 | `curl …/web/index.html` no muestra `startup-ads-inject` | El middleware no interceptó: revisa el log (`middleware registered`), que `InjectClientScript` esté activo y que `WebBasePath` coincida con tu ruta base. Prueba con otro plugin de inyección (JavaScript Injector) como alternativa. |
-| El script se inyecta pero el overlay no aparece | Caché del navegador: fuerza recarga (Ctrl+F5). Revisa la consola del navegador y `GET /StartupAds/Config`. |
+| El script se inyecta pero el overlay no aparece | Caché del navegador: fuerza recarga (Ctrl+F5). En F12 → Network mira `GET /StartupAds/Config`: debe ser **200** (en v1.1–v1.2 daba 500). |
+| Botones «Guardar anuncio» / «Cancelar» sin efecto (v1.2 y anteriores) | Corregido en **v1.3.0**. Actualiza el plugin. |
+| El modal de anuncios sale a la derecha / recortado (v1.2 y anteriores) | Corregido en **v1.3.0** (el modal se traslada a `<body>`). |
+| El plugin aparece con nombre raro en «Mis complementos» | Instala el **ZIP completo** (DLL + `meta.json`) en una carpeta `Jellyfin Startup Ads_1.3.0.0`, no solo el DLL. El log muestra `[StartupAds] Plugin loaded. Name='Jellyfin Startup Ads' Id=6d1a9b6e...`. |
+| El plugin no aparece en el **Catálogo** | Falta la *GitHub Release* `v1.3.0` con el ZIP subido como asset (el `sourceUrl` del manifest da 404 hasta entonces). |
 | No aparece ningún anuncio | ¿`Enabled` y `ShowOnStartup`? ¿La ruta valida OK? ¿Hay anuncios activos y en horario para tu usuario? |
 | El anuncio no reaparece | `FrequencyMode = OncePerSession`: cierra la pestaña o usa `EveryStartup`. |
 | El vídeo no arranca solo | El navegador bloquea autoplay con sonido: mantén `MutedVideo`. |
-| Docker: nada que hacer con `web/` | Correcto — v1.2.0 no toca `jellyfin-web` en disco. |
+| Docker: nada que hacer con `web/` | Correcto — v1.3.0 no toca `jellyfin-web` en disco. |
 | "Nombre de archivo no válido" al guardar un anuncio | El nombre contenía `/`, `\`, `..` o `:`. Usa solo el nombre del fichero. |
 | Logs | `journalctl -u jellyfin -f | grep StartupAds` (systemd) o `docker logs -f jellyfin 2>&1 | grep StartupAds`. |
 
@@ -399,7 +417,7 @@ Plugins: `/config/plugins/Jellyfin Startup Ads_1.2.0.0/` (dentro del volumen
 1. Clientes nativos (Android TV, Roku, Kodi, Swiftfin) **no** soportados: no
    ejecutan Jellyfin Web.
 2. **Jellyfin core no tiene API oficial de inyección** (PR #9095 cerrado). El
-   mecanismo de v1.2.0 usa `IStartupFilter` (extensión estándar de ASP.NET Core).
+   mecanismo de v1.3.0 usa `IStartupFilter` (extensión estándar de ASP.NET Core).
    Si un futuro Jellyfin cambiara su forma de servir `index.html` o el orden del
    pipeline, habría que revisar `IndexHtmlInjectionMiddleware`.
 3. Autoplay de vídeo **con** sonido: no es posible de forma fiable.
@@ -407,15 +425,26 @@ Plugins: `/config/plugins/Jellyfin Startup Ads_1.2.0.0/` (dentro del volumen
    cambia su router habrá que ajustar `handleAction` en `startup-ads.js`.
 5. Estadísticas: solo contadores agregados, sin panel de informes.
 6. **Qué está probado y qué no** (ver también *Prueba real en el servidor*):
-   - ✅ *Test unitario*: 60 tests (selección, horarios incl. medianoche, seguridad
-     de rutas, tracking, `IndexHtmlInjector`).
-   - ✅ *Test de integración de pipeline*: 6 tests con `TestServer` (ASP.NET Core
-     real) que ejercitan el middleware de inyección.
-   - ✅ *Test de build / package*: `dotnet build` 0 warnings, `dotnet test` 73/73,
-     ZIP reproducible sin ensamblados de Jellyfin.
-   - ❌ *Test real en Jellyfin 10.11.11*: **no realizado** (no hay servidor en el
-     entorno de desarrollo).
-   - ❌ *Test real en navegador*: **no realizado**.
+   - ✅ *Test unitario / de build* (`TEST DE BUILD` + `TEST UNITARIO`): `dotnet build`
+     0 warnings / 0 errors, `dotnet test` **88/88** en verde. Cubre: selección de
+     anuncios, horarios (incl. medianoche `22:00→02:00`), seguridad de rutas
+     (traversal, UNC, symlink, magic bytes), tracking, `IndexHtmlInjector`, y el
+     **contrato de autorización** de la API (`ApiAuthorizationTests` — falla si vuelve
+     a aparecer `"DefaultAuthorization"`).
+   - ✅ *Test de integración de pipeline* (`TEST DE INTEGRACIÓN`): 6 tests con
+     `Microsoft.AspNetCore.TestHost` que ejercitan el middleware de inyección sobre un
+     pipeline ASP.NET Core **real** (no Jellyfin).
+   - ✅ *Packaging*: ZIP reproducible (`b639fd044dff3787d1d681afb15b89a9`, 45 681 B),
+     solo `Jellyfin.Plugin.StartupAds.dll` + `meta.json` (verificado: sin
+     `Jellyfin.Controller.dll` / `Jellyfin.Model.dll`).
+   - ⚠️ *Análisis contra el código fuente de Jellyfin 10.11.11*: los bugs de v1.3.0 se
+     localizaron leyendo `jellyfin` y `jellyfin-web` v10.11.11 (policies, `viewContainer`,
+     `PluginManifest`, `AuthorizationContext`). Las correcciones se derivan de ese código,
+     pero **no** sustituyen a una prueba real.
+   - ❌ *Test real en Jellyfin 10.11.11* (`TEST REAL EN JELLYFIN`): **NO realizado** en
+     este entorno (no hay servidor Jellyfin).
+   - ❌ *Test real en navegador* (`TEST REAL EN NAVEGADOR`): **NO realizado**
+     (Chrome / Edge / Firefox sin probar).
 
 ---
 
@@ -428,15 +457,15 @@ Plugins: `/config/plugins/Jellyfin Startup Ads_1.2.0.0/` (dentro del volumen
 
 ```
 BUILD      pwsh ./build/package.ps1
-           # -> artifacts/jellyfin-startup-ads_1.2.0.0.zip  (MD5 en release-info.json)
+           # -> artifacts/jellyfin-startup-ads_1.3.0.0.zip  (MD5 en release-info.json)
 
-UPLOAD     scp artifacts/jellyfin-startup-ads_1.2.0.0.zip usuario@servidor:/tmp/
+UPLOAD     scp artifacts/jellyfin-startup-ads_1.3.0.0.zip usuario@servidor:/tmp/
 
 INSTALL    ssh usuario@servidor
-           sudo mkdir -p "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.2.0.0"
-           sudo unzip -o /tmp/jellyfin-startup-ads_1.2.0.0.zip \
-                -d "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.2.0.0"
-           sudo chown -R jellyfin:jellyfin "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.2.0.0"
+           sudo mkdir -p "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.3.0.0"
+           sudo unzip -o /tmp/jellyfin-startup-ads_1.3.0.0.zip \
+                -d "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.3.0.0"
+           sudo chown -R jellyfin:jellyfin "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.3.0.0"
 
 RESTART    sudo systemctl restart jellyfin
 

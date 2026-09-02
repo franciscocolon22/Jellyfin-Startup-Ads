@@ -18,26 +18,20 @@
             </div>
 
             <!-- ================= GENERAL ================= -->
-            <form id="saGeneralForm">
+            <form id="saGeneralForm" class="saForm">
                 <h2>Configuración general</h2>
 
                 <div class="checkboxContainer">
-                    <label>
-                        <input is="emby-checkbox" type="checkbox" id="saEnabled" />
-                        <span>Activar anuncios</span>
-                    </label>
+                    <label><input is="emby-checkbox" type="checkbox" id="saEnabled" />
+                        <span>Activar anuncios</span></label>
                 </div>
                 <div class="checkboxContainer">
-                    <label>
-                        <input is="emby-checkbox" type="checkbox" id="saShowOnStartup" />
-                        <span>Mostrar anuncios al iniciar Jellyfin Web</span>
-                    </label>
+                    <label><input is="emby-checkbox" type="checkbox" id="saShowOnStartup" />
+                        <span>Mostrar anuncios al iniciar Jellyfin Web</span></label>
                 </div>
                 <div class="checkboxContainer">
-                    <label>
-                        <input is="emby-checkbox" type="checkbox" id="saInject" />
-                        <span>Inyectar el script del plugin en Jellyfin Web (en memoria, sin tocar archivos)</span>
-                    </label>
+                    <label><input is="emby-checkbox" type="checkbox" id="saInject" />
+                        <span>Inyectar el script del plugin en Jellyfin Web (en memoria, sin tocar archivos)</span></label>
                 </div>
                 <div class="inputContainer">
                     <label class="inputLabel inputLabelUnfocused" for="saWebBasePath">Ruta base de Jellyfin Web</label>
@@ -47,19 +41,16 @@
 
                 <div class="inputContainer">
                     <label class="inputLabel inputLabelUnfocused" for="saAdsDirectory">Ruta de anuncios</label>
-                    <input is="emby-input" type="text" id="saAdsDirectory"
-                           placeholder="/var/lib/jellyfin/ads" />
+                    <input is="emby-input" type="text" id="saAdsDirectory" placeholder="/var/lib/jellyfin/startup-ads" />
                     <div class="fieldDescription">
-                        Carpeta absoluta del servidor que contiene las imágenes y vídeos.
-                        Ejemplos: <code>/var/lib/jellyfin/ads</code>, <code>C:\Jellyfin\Ads</code>.
+                        Carpeta absoluta del servidor con las imágenes y vídeos.
+                        Ejemplos: <code>/var/lib/jellyfin/startup-ads</code>, <code>D:\Jellyfin\StartupAds</code>.
                     </div>
                 </div>
-                <button is="emby-button" type="button" id="saValidatePath" class="raised">
-                    <span>Validar ruta</span>
-                </button>
-                <button is="emby-button" type="button" id="saScan" class="raised">
-                    <span>Escanear e importar archivos</span>
-                </button>
+                <div>
+                    <button is="emby-button" type="button" id="saValidatePath" class="raised"><span>Validar ruta</span></button>
+                    <button is="emby-button" type="button" id="saScan" class="raised"><span>Escanear e importar archivos</span></button>
+                </div>
                 <div id="saPathResult" class="fieldDescription" style="margin-top:8px;"></div>
 
                 <div class="selectContainer">
@@ -70,17 +61,15 @@
                         <option value="Mixed">Mixto</option>
                     </select>
                 </div>
-
                 <div class="selectContainer">
                     <label class="selectLabel" for="saOrderMode">Orden</label>
                     <select is="emby-select" id="saOrderMode">
-                        <option value="Priority">Prioridad</option>
+                        <option value="Priority">Prioridad (número mayor = primero)</option>
                         <option value="Name">Nombre</option>
                         <option value="Random">Aleatorio</option>
                         <option value="Manual">Orden manual</option>
                     </select>
                 </div>
-
                 <div class="selectContainer">
                     <label class="selectLabel" for="saFrequencyMode">Frecuencia</label>
                     <select is="emby-select" id="saFrequencyMode">
@@ -88,7 +77,6 @@
                         <option value="EveryStartup">En cada inicio</option>
                     </select>
                 </div>
-
                 <div class="selectContainer">
                     <label class="selectLabel" for="saDisplayMode">Modo de visualización</label>
                     <select is="emby-select" id="saDisplayMode">
@@ -164,18 +152,18 @@
                 </div>
                 <div class="inputContainer">
                     <label class="inputLabel inputLabelUnfocused" for="saMaxWidth">Ancho máximo (px)</label>
-                    <input is="emby-input" type="number" id="saMaxWidth" min="200" max="4000" />
+                    <input is="emby-input" type="number" id="saMaxWidth" min="200" max="6000" />
                 </div>
                 <div class="inputContainer">
                     <label class="inputLabel inputLabelUnfocused" for="saMaxHeight">Alto máximo (px)</label>
-                    <input is="emby-input" type="number" id="saMaxHeight" min="200" max="4000" />
+                    <input is="emby-input" type="number" id="saMaxHeight" min="200" max="6000" />
                 </div>
                 <div class="inputContainer">
                     <label class="inputLabel inputLabelUnfocused" for="saBorderRadius">Radio de bordes (px)</label>
-                    <input is="emby-input" type="number" id="saBorderRadius" min="0" max="60" />
+                    <input is="emby-input" type="number" id="saBorderRadius" min="0" max="80" />
                 </div>
                 <div class="inputContainer">
-                    <label class="inputLabel inputLabelUnfocused" for="saAccent">Color de acento</label>
+                    <label class="inputLabel inputLabelUnfocused" for="saAccent">Color de acento (#RRGGBB)</label>
                     <input is="emby-input" type="text" id="saAccent" placeholder="#00a4dc" />
                 </div>
                 <div class="selectContainer">
@@ -187,7 +175,7 @@
                 </div>
                 <div class="checkboxContainer">
                     <label><input is="emby-checkbox" type="checkbox" id="saStats" />
-                        <span>Activar estadísticas (mostrado / omitido / completado / clics)</span></label>
+                        <span>Activar estadísticas (impresión / inicio / completado / omitido / clic)</span></label>
                 </div>
 
                 <br />
@@ -199,205 +187,326 @@
             <!-- ================= ADVERTISEMENTS ================= -->
             <div class="verticalSection" style="margin-top:2em;">
                 <h2>Anuncios</h2>
-                <button is="emby-button" type="button" id="saNewAd" class="raised">
+                <button is="emby-button" type="button" id="saNewAd" class="raised block">
                     <span>Crear anuncio</span>
                 </button>
-                <table class="tblStartupAds" style="width:100%;margin-top:1em;border-collapse:collapse;">
-                    <thead>
-                        <tr style="text-align:left;border-bottom:1px solid #444;">
-                            <th>Nombre</th><th>Tipo</th><th>Estado</th><th>Prioridad</th><th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="saAdsBody"></tbody>
-                </table>
+                <div style="overflow-x:auto;">
+                    <table class="tblStartupAds" style="width:100%;min-width:520px;margin-top:1em;border-collapse:collapse;">
+                        <thead>
+                            <tr style="text-align:left;border-bottom:1px solid rgba(255,255,255,.2);">
+                                <th style="padding:8px 6px;">Nombre</th>
+                                <th style="padding:8px 6px;">Tipo</th>
+                                <th style="padding:8px 6px;">Estado</th>
+                                <th style="padding:8px 6px;">Prioridad</th>
+                                <th style="padding:8px 6px;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="saAdsBody"></tbody>
+                    </table>
+                </div>
                 <p id="saNoAds" class="fieldDescription" hidden>No hay anuncios. Crea uno o escanea la carpeta.</p>
             </div>
 
-            <!-- ================= AD EDITOR ================= -->
-            <div id="saEditor" class="dialogContainer" hidden
-                 style="position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.6);overflow:auto;">
-                <div style="max-width:720px;margin:4vh auto;background:#101418;color:#f4f6f8;padding:24px;border-radius:10px;">
-                    <h2 id="saEditorTitle">Anuncio</h2>
-                    <form id="saAdForm">
+            <!-- ================= AD EDITOR (moved to <body> at runtime) ================= -->
+            <div id="saEditor" class="saModalOverlay" style="display:none;" role="dialog" aria-modal="true"
+                 aria-labelledby="saEditorTitle">
+                <div class="saModalDialog" role="document">
+                    <div class="saModalHeader">
+                        <h2 id="saEditorTitle">Anuncio</h2>
+                        <button is="emby-button" type="button" id="saModalX" class="saModalX" aria-label="Cerrar">
+                            <span aria-hidden="true" style="font-size:1.4em;line-height:1;">&times;</span>
+                        </button>
+                    </div>
+
+                    <form id="saAdForm" class="saModalBody">
                         <input type="hidden" id="adId" />
-                        <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="adName">Nombre interno</label>
-                            <input is="emby-input" type="text" id="adName" required />
-                        </div>
-                        <div class="selectContainer">
-                            <label class="selectLabel" for="adType">Tipo</label>
-                            <select is="emby-select" id="adType">
-                                <option value="Image">Imagen</option>
-                                <option value="Video">Vídeo</option>
-                                <option value="Text">Texto</option>
-                                <option value="Multimedia">Multimedia</option>
-                            </select>
-                        </div>
-                        <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="adTitle">Título</label>
-                            <input is="emby-input" type="text" id="adTitle" />
-                        </div>
-                        <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="adDescription">Descripción</label>
-                            <textarea is="emby-input" id="adDescription" rows="3"></textarea>
-                            <div class="fieldDescription">Texto plano. El HTML se ignora y se muestra escapado.</div>
-                        </div>
-                        <div class="selectContainer">
-                            <label class="selectLabel" for="adMediaFile">Archivo (dentro de la ruta configurada)</label>
-                            <select is="emby-select" id="adMediaFile">
-                                <option value="">(ninguno)</option>
-                            </select>
-                        </div>
-                        <div class="selectContainer">
-                            <label class="selectLabel" for="adBackgroundFile">Imagen de fondo opcional</label>
-                            <select is="emby-select" id="adBackgroundFile">
-                                <option value="">(ninguna)</option>
-                            </select>
-                        </div>
-                        <div class="selectContainer">
-                            <label class="selectLabel" for="adObjectFit">Ajuste de la imagen/vídeo</label>
-                            <select is="emby-select" id="adObjectFit">
-                                <option value="contain">contain (sin recortar)</option>
-                                <option value="cover">cover (rellenar)</option>
-                            </select>
+
+                        <div class="saSection">
+                            <h3>Información</h3>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="adName">Nombre interno *</label>
+                                <input is="emby-input" type="text" id="adName" required />
+                            </div>
+                            <div class="selectContainer">
+                                <label class="selectLabel" for="adType">Tipo *</label>
+                                <select is="emby-select" id="adType">
+                                    <option value="Image">Imagen</option>
+                                    <option value="Video">Vídeo</option>
+                                    <option value="Text">Texto</option>
+                                    <option value="Multimedia">Multimedia</option>
+                                </select>
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="adTitle">Título</label>
+                                <input is="emby-input" type="text" id="adTitle" />
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="adDescription">Descripción</label>
+                                <textarea id="adDescription" class="saTextarea" rows="3"></textarea>
+                                <div class="fieldDescription">Texto plano. El HTML se muestra escapado.</div>
+                            </div>
                         </div>
 
-                        <div class="selectContainer">
-                            <label class="selectLabel" for="adDurationMode">Duración</label>
-                            <select is="emby-select" id="adDurationMode">
-                                <option value="Manual">Configurada manualmente</option>
-                                <option value="FromVideo">Duración del vídeo</option>
-                            </select>
-                        </div>
-                        <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="adDuration">Duración (segundos)</label>
-                            <input is="emby-input" type="number" id="adDuration" min="1" max="600" />
-                        </div>
-                        <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="adPriority">Prioridad</label>
-                            <input is="emby-input" type="number" id="adPriority" min="0" max="1000" />
-                        </div>
-                        <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="adOrder">Orden manual</label>
-                            <input is="emby-input" type="number" id="adOrder" min="0" max="100000" />
-                        </div>
-
-                        <div class="checkboxContainer">
-                            <label><input is="emby-checkbox" type="checkbox" id="adEnabled" />
-                                <span>Activo</span></label>
-                        </div>
-                        <div class="checkboxContainer">
-                            <label><input is="emby-checkbox" type="checkbox" id="adShowOnStartup" />
-                                <span>Mostrar al iniciar</span></label>
-                        </div>
-                        <div class="checkboxContainer">
-                            <label><input is="emby-checkbox" type="checkbox" id="adAllowSkip" />
-                                <span>Permitir omitir este anuncio</span></label>
-                        </div>
-                        <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="adSkipAfter">Permitir omitir después de (segundos)</label>
-                            <input is="emby-input" type="number" id="adSkipAfter" min="0" max="600" />
-                        </div>
-                        <div class="checkboxContainer">
-                            <label><input is="emby-checkbox" type="checkbox" id="adShowCountdown" />
-                                <span>Mostrar contador en este anuncio</span></label>
+                        <div class="saSection" id="adFileSection">
+                            <h3>Archivo / contenido</h3>
+                            <div class="selectContainer">
+                                <label class="selectLabel" for="adMediaFile">Archivo (dentro de la ruta configurada)</label>
+                                <select is="emby-select" id="adMediaFile"><option value="">(ninguno)</option></select>
+                            </div>
+                            <div class="selectContainer">
+                                <label class="selectLabel" for="adBackgroundFile">Imagen de fondo opcional</label>
+                                <select is="emby-select" id="adBackgroundFile"><option value="">(ninguna)</option></select>
+                            </div>
+                            <div class="selectContainer">
+                                <label class="selectLabel" for="adObjectFit">Ajuste de la imagen/vídeo</label>
+                                <select is="emby-select" id="adObjectFit">
+                                    <option value="contain">contain (sin recortar)</option>
+                                    <option value="cover">cover (rellenar)</option>
+                                </select>
+                            </div>
                         </div>
 
-                        <h3>Botón</h3>
-                        <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="adButtonText">Texto del botón</label>
-                            <input is="emby-input" type="text" id="adButtonText" placeholder="Ver ahora" />
-                        </div>
-                        <div class="selectContainer">
-                            <label class="selectLabel" for="adButtonAction">Acción</label>
-                            <select is="emby-select" id="adButtonAction">
-                                <option value="None">Sin botón</option>
-                                <option value="ExternalUrl">Abrir URL externa</option>
-                                <option value="JellyfinItem">Abrir contenido de Jellyfin</option>
-                                <option value="CloseOnly">Solo cerrar el anuncio</option>
-                            </select>
-                        </div>
-                        <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="adButtonUrl">URL externa (https://)</label>
-                            <input is="emby-input" type="text" id="adButtonUrl" placeholder="https://miweb.com/promo" />
-                        </div>
-                        <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="adButtonItemId">Id de contenido de Jellyfin</label>
-                            <input is="emby-input" type="text" id="adButtonItemId" />
+                        <div class="saSection">
+                            <h3>Configuración</h3>
+                            <div class="selectContainer">
+                                <label class="selectLabel" for="adDurationMode">Duración</label>
+                                <select is="emby-select" id="adDurationMode">
+                                    <option value="Manual">Configurada manualmente</option>
+                                    <option value="FromVideo">Duración del vídeo</option>
+                                </select>
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="adDuration">Duración (segundos)</label>
+                                <input is="emby-input" type="number" id="adDuration" min="1" max="600" />
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="adPriority">Prioridad (0 - 1000, mayor = primero)</label>
+                                <input is="emby-input" type="number" id="adPriority" min="0" max="1000" />
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="adOrder">Orden manual</label>
+                                <input is="emby-input" type="number" id="adOrder" min="0" max="1000000" />
+                            </div>
+                            <div class="checkboxContainer">
+                                <label><input is="emby-checkbox" type="checkbox" id="adEnabled" /><span>Activo</span></label>
+                            </div>
+                            <div class="checkboxContainer">
+                                <label><input is="emby-checkbox" type="checkbox" id="adShowOnStartup" /><span>Mostrar al iniciar</span></label>
+                            </div>
+                            <div class="checkboxContainer">
+                                <label><input is="emby-checkbox" type="checkbox" id="adAllowSkip" /><span>Permitir omitir este anuncio</span></label>
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="adSkipAfter">Permitir omitir después de (segundos)</label>
+                                <input is="emby-input" type="number" id="adSkipAfter" min="0" max="600" />
+                            </div>
+                            <div class="checkboxContainer">
+                                <label><input is="emby-checkbox" type="checkbox" id="adShowCountdown" /><span>Mostrar contador en este anuncio</span></label>
+                            </div>
                         </div>
 
-                        <h3>Programación</h3>
-                        <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="adStartDate">Fecha de inicio</label>
-                            <input is="emby-input" type="date" id="adStartDate" />
+                        <div class="saSection">
+                            <h3>Acción</h3>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="adButtonText">Texto del botón</label>
+                                <input is="emby-input" type="text" id="adButtonText" placeholder="Ver ahora" />
+                            </div>
+                            <div class="selectContainer">
+                                <label class="selectLabel" for="adButtonAction">Acción</label>
+                                <select is="emby-select" id="adButtonAction">
+                                    <option value="None">Sin botón</option>
+                                    <option value="ExternalUrl">Abrir URL externa</option>
+                                    <option value="JellyfinItem">Abrir contenido de Jellyfin</option>
+                                    <option value="CloseOnly">Solo cerrar el anuncio</option>
+                                </select>
+                            </div>
+                            <div class="inputContainer" id="adButtonUrlRow">
+                                <label class="inputLabel inputLabelUnfocused" for="adButtonUrl">URL externa (http:// o https://)</label>
+                                <input is="emby-input" type="url" id="adButtonUrl" placeholder="https://miweb.com/promo" />
+                            </div>
+                            <div class="inputContainer" id="adButtonItemRow">
+                                <label class="inputLabel inputLabelUnfocused" for="adButtonItemId">Id de contenido de Jellyfin</label>
+                                <input is="emby-input" type="text" id="adButtonItemId" />
+                            </div>
                         </div>
-                        <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="adEndDate">Fecha de finalización</label>
-                            <input is="emby-input" type="date" id="adEndDate" />
-                        </div>
-                        <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="adStartTime">Hora de inicio (HH:mm)</label>
-                            <input is="emby-input" type="time" id="adStartTime" />
-                        </div>
-                        <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="adEndTime">Hora de finalización (HH:mm)</label>
-                            <input is="emby-input" type="time" id="adEndTime" />
-                        </div>
-                        <div class="fieldDescription">Días de la semana (vacío = todos):</div>
-                        <div id="adDays" style="display:flex;gap:12px;flex-wrap:wrap;margin:6px 0;"></div>
 
-                        <h3>Usuarios</h3>
-                        <div class="fieldDescription">Sin selección = todos los usuarios.</div>
-                        <div id="adUsers" style="display:flex;gap:12px;flex-wrap:wrap;margin:6px 0;"></div>
+                        <div class="saSection">
+                            <h3>Programación</h3>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="adStartDate">Fecha de inicio</label>
+                                <input is="emby-input" type="date" id="adStartDate" />
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="adEndDate">Fecha de finalización</label>
+                                <input is="emby-input" type="date" id="adEndDate" />
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="adStartTime">Hora de inicio (HH:mm)</label>
+                                <input is="emby-input" type="time" id="adStartTime" />
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="adEndTime">Hora de finalización (HH:mm)</label>
+                                <input is="emby-input" type="time" id="adEndTime" />
+                            </div>
+                            <div class="fieldDescription">Si la hora final es menor que la inicial, la franja cruza medianoche (p. ej. 22:00 → 02:00).</div>
+                            <div class="fieldDescription" style="margin-top:8px;">Días de la semana (vacío = todos):</div>
+                            <div id="adDays" class="saChips"></div>
+                        </div>
 
-                        <br />
-                        <button is="emby-button" type="submit" class="raised button-submit">
-                            <span>Guardar anuncio</span>
-                        </button>
-                        <button is="emby-button" type="button" id="saCancelEdit" class="raised">
-                            <span>Cancelar</span>
-                        </button>
+                        <div class="saSection">
+                            <h3>Usuarios</h3>
+                            <div class="fieldDescription">Sin selección = todos los usuarios.</div>
+                            <div id="adUsers" class="saChips"></div>
+                        </div>
+
+                        <div id="adFormError" class="saFormError" hidden></div>
                     </form>
+
+                    <div class="saModalFooter">
+                        <button is="emby-button" type="button" id="saCancelEdit" class="raised"><span>Cancelar</span></button>
+                        <button is="emby-button" type="button" id="saSaveAd" class="raised button-submit"><span>Guardar anuncio</span></button>
+                    </div>
                 </div>
             </div>
 
         </div>
     </div>
 
+    <style>
+        #startupAdsConfigPage .saForm h3 { margin-top: 1.4em; }
+        #startupAdsConfigPage .tblStartupAds td { padding: 6px; border-bottom: 1px solid rgba(255,255,255,.08); }
+        #startupAdsConfigPage .saRowActions button { margin: 2px; }
+
+        .saModalOverlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3vmin;
+            background: rgba(0,0,0,.6);
+            box-sizing: border-box;
+        }
+        .saModalOverlay * { box-sizing: border-box; }
+        .saModalDialog {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 680px;
+            max-height: 92vh;
+            border-radius: 8px;
+            overflow: hidden;
+            background: var(--theme-body-background, #101418);
+            color: var(--theme-text-color, #f4f6f8);
+            box-shadow: 0 20px 60px rgba(0,0,0,.55);
+        }
+        .saModalHeader,
+        .saModalFooter {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            background: rgba(255,255,255,.04);
+        }
+        .saModalHeader { border-bottom: 1px solid rgba(255,255,255,.12); }
+        .saModalHeader h2 { margin: 0; font-size: 1.15em; flex: 1 1 auto; }
+        .saModalFooter { border-top: 1px solid rgba(255,255,255,.12); justify-content: flex-end; }
+        .saModalX { min-width: 0 !important; padding: 6px !important; }
+        .saModalBody {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            padding: 4px 20px 16px;
+        }
+        .saSection { padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
+        .saSection:last-of-type { border-bottom: 0; }
+        .saSection h3 { margin: 0 0 8px; font-size: 1em; opacity: .85; }
+        .saTextarea {
+            width: 100%;
+            background: rgba(255,255,255,.08);
+            color: inherit;
+            border: 1px solid rgba(255,255,255,.2);
+            border-radius: 4px;
+            padding: 8px;
+            font: inherit;
+            resize: vertical;
+        }
+        .saChips { display: flex; flex-wrap: wrap; gap: 12px; margin: 6px 0; }
+        .saChips label { display: inline-flex; align-items: center; gap: 4px; }
+        .saFormError,
+        #adFormError {
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 4px;
+            background: rgba(244, 67, 54, .15);
+            color: #ff8a80;
+        }
+        @media (max-width: 620px) {
+            .saModalDialog { max-height: 96vh; }
+            .saModalHeader, .saModalFooter, .saModalBody { padding-left: 14px; padding-right: 14px; }
+        }
+    </style>
+
     <script type="text/javascript">
         (function () {
-            var PLUGIN_ID = '6d1a9b6e-6b3e-4f9a-9c2d-3a7f1e2c4b90';
-            var page;
+            'use strict';
+            if (window.__startupAdsAdminLoaded) { return; }
+            window.__startupAdsAdminLoaded = true;
 
-            function api() { return window.ApiClient; }
-            function base(path) { return api().getUrl('StartupAds/' + path); }
-            function authHeaders() { return { 'X-Emby-Token': api().accessToken(), 'Content-Type': 'application/json' }; }
+            var MODAL_ID = 'startupAdsEditorModal';
 
+            function apiClient() {
+                return window.ApiClient
+                    || (window.ServerConnections && window.ServerConnections.currentApiClient
+                        && window.ServerConnections.currentApiClient());
+            }
+
+            /* All requests go through ApiClient.ajax so Jellyfin builds the correct
+               Authorization header (works whether or not legacy auth is enabled). */
             function req(method, path, body) {
-                return fetch(base(path), {
-                    method: method,
-                    headers: authHeaders(),
-                    body: body ? JSON.stringify(body) : undefined
-                }).then(function (r) {
-                    if (!r.ok) {
-                        return r.text().then(function (txt) {
-                            throw new Error(txt || ('HTTP ' + r.status));
-                        });
+                var api = apiClient();
+                var opts = { type: method, url: api.getUrl('StartupAds/' + path) };
+                if (body !== undefined) {
+                    opts.data = JSON.stringify(body);
+                    opts.contentType = 'application/json';
+                }
+                if (method === 'GET') { opts.dataType = 'json'; }
+                return api.ajax(opts).then(function (res) {
+                    if (typeof res === 'string' && res.length) {
+                        try { return JSON.parse(res); } catch (e) { return res; }
                     }
-                    return r.status === 204 ? null : r.json();
+                    return res;
                 });
             }
 
-            var g = function (id) { return page.querySelector('#' + id); };
-            var val = function (id) { return g(id).value; };
-            var num = function (id) { return parseFloat(g(id).value) || 0; };
-            var chk = function (id) { return g(id).checked; };
-            var setChk = function (id, v) { g(id).checked = !!v; };
-            var setVal = function (id, v) { g(id).value = (v == null ? '' : v); };
+            function errText(err) {
+                if (!err) { return 'Error desconocido'; }
+                if (typeof err === 'string') { return err; }
+                if (err.responseText) { return err.responseText; }
+                if (err.statusText) { return 'HTTP ' + (err.status || '') + ' ' + err.statusText; }
+                return err.message || String(err);
+            }
 
-            /* -------- general config -------- */
+            /* ---------------------------------------------------------------- */
+            var state = { view: null, modal: null, files: [], users: [], lastFocus: null };
+
+            function q(root, id) { return root.querySelector('#' + id); }
+            function val(id) { var e = q(state.modalScope(id), id); return e ? e.value : ''; }
+            function num(id) { return parseFloat(val(id)) || 0; }
+            function chk(id) { var e = q(state.modalScope(id), id); return !!(e && e.checked); }
+            function setVal(id, v) { var e = q(state.modalScope(id), id); if (e) { e.value = (v == null ? '' : v); } }
+            function setChk(id, v) { var e = q(state.modalScope(id), id); if (e) { e.checked = !!v; } }
+
+            /* elements live either in the page or (the modal) in <body> */
+            state.modalScope = function (id) {
+                if (state.modal && state.modal.querySelector('#' + id)) { return state.modal; }
+                return state.view || document;
+            };
+
+            /* ---------------- general config ---------------- */
             function loadConfig() {
-                req('GET', 'Admin/Configuration').then(function (c) {
+                return req('GET', 'Admin/Configuration').then(function (c) {
                     setChk('saEnabled', c.Enabled);
                     setChk('saShowOnStartup', c.ShowOnStartup);
                     setChk('saInject', c.InjectClientScript);
@@ -431,127 +540,119 @@
             }
 
             function saveConfig(e) {
-                e.preventDefault();
+                if (e) { e.preventDefault(); }
                 Dashboard.showLoadingMsg();
                 var body = {
-                    Enabled: chk('saEnabled'),
-                    ShowOnStartup: chk('saShowOnStartup'),
-                    InjectClientScript: chk('saInject'),
-                    WebBasePath: val('saWebBasePath') || '/web',
+                    Enabled: chk('saEnabled'), ShowOnStartup: chk('saShowOnStartup'),
+                    InjectClientScript: chk('saInject'), WebBasePath: val('saWebBasePath') || '/web',
                     AdsDirectory: val('saAdsDirectory'),
-                    SourceMode: val('saSourceMode'),
-                    OrderMode: val('saOrderMode'),
-                    FrequencyMode: val('saFrequencyMode'),
-                    DisplayMode: val('saDisplayMode'),
-                    DefaultDurationSeconds: num('saDefaultDuration'),
-                    MaxAdsPerStartup: num('saMaxAds'),
-                    RandomPick: chk('saRandomPick'),
-                    ShowCountdown: chk('saShowCountdown'),
-                    AllowSkip: chk('saAllowSkip'),
-                    SkipAfterSeconds: num('saSkipAfter'),
-                    SkipButtonMode: val('saSkipButtonMode'),
-                    ShowCloseButton: chk('saShowCloseButton'),
+                    SourceMode: val('saSourceMode'), OrderMode: val('saOrderMode'),
+                    FrequencyMode: val('saFrequencyMode'), DisplayMode: val('saDisplayMode'),
+                    DefaultDurationSeconds: num('saDefaultDuration'), MaxAdsPerStartup: num('saMaxAds'),
+                    RandomPick: chk('saRandomPick'), ShowCountdown: chk('saShowCountdown'),
+                    AllowSkip: chk('saAllowSkip'), SkipAfterSeconds: num('saSkipAfter'),
+                    SkipButtonMode: val('saSkipButtonMode'), ShowCloseButton: chk('saShowCloseButton'),
                     AllowCloseWithEscape: chk('saAllowEscape'),
-                    AutoplayVideo: chk('saAutoplay'),
-                    MutedVideo: chk('saMuted'),
-                    LoopVideo: chk('saLoop'),
-                    ShowVideoControls: chk('saControls'),
-                    OverlayOpacity: num('saOverlayOpacity'),
-                    MaxWidthPx: num('saMaxWidth'),
-                    MaxHeightPx: num('saMaxHeight'),
-                    BorderRadiusPx: num('saBorderRadius'),
-                    ObjectFit: 'contain',
-                    AccentColor: val('saAccent'),
-                    Language: val('saLanguage'),
-                    EnableStatistics: chk('saStats')
+                    AutoplayVideo: chk('saAutoplay'), MutedVideo: chk('saMuted'),
+                    LoopVideo: chk('saLoop'), ShowVideoControls: chk('saControls'),
+                    OverlayOpacity: num('saOverlayOpacity'), MaxWidthPx: num('saMaxWidth'),
+                    MaxHeightPx: num('saMaxHeight'), BorderRadiusPx: num('saBorderRadius'),
+                    ObjectFit: 'contain', AccentColor: val('saAccent'),
+                    Language: val('saLanguage'), EnableStatistics: chk('saStats')
                 };
                 req('POST', 'Admin/Configuration', body).then(function () {
-                    Dashboard.hideLoadingMsg();
                     Dashboard.processPluginConfigurationUpdateResult();
-                }).catch(function () {
+                }).catch(function (err) {
                     Dashboard.hideLoadingMsg();
-                    Dashboard.alert('No se pudo guardar la configuración.');
+                    Dashboard.alert({ title: 'Error', message: 'No se pudo guardar la configuración: ' + errText(err) });
                 });
                 return false;
             }
 
             function validatePath() {
+                var out = q(state.view, 'saPathResult');
+                out.textContent = 'Validando…';
                 req('POST', 'Admin/ValidatePath', { Path: val('saAdsDirectory') }).then(function (r) {
-                    g('saPathResult').textContent = r.Message;
-                    g('saPathResult').style.color = r.Ok ? '#4caf50' : '#ff9800';
-                });
+                    out.textContent = r.Message;
+                    out.style.color = r.Ok ? '#66bb6a' : '#ffa726';
+                }).catch(function (err) { out.textContent = errText(err); out.style.color = '#ff8a80'; });
             }
 
             function scan() {
+                Dashboard.showLoadingMsg();
                 req('POST', 'Admin/Scan').then(function (r) {
-                    Dashboard.alert('Escaneo completado. Importados: ' + (r.Imported || 0) +
-                        ' · Eliminados (archivo ausente): ' + (r.RemovedMissing || 0));
+                    Dashboard.hideLoadingMsg();
+                    Dashboard.alert('Escaneo: importados ' + (r.Imported || 0) + ', eliminados ' + (r.RemovedMissing || 0) + '.');
                     loadFiles().then(loadAds);
+                }).catch(function (err) {
+                    Dashboard.hideLoadingMsg();
+                    Dashboard.alert({ title: 'Error', message: errText(err) });
                 });
             }
 
-            /* -------- ad list -------- */
-            var filesCache = [];
-            var usersCache = [];
-
+            /* ---------------- ad list ---------------- */
             function loadFiles() {
-                return req('GET', 'Admin/Files').then(function (list) { filesCache = list || []; });
+                return req('GET', 'Admin/Files').then(function (l) { state.files = l || []; })
+                    .catch(function () { state.files = []; });
             }
-
             function loadUsers() {
-                return api().getUsers().then(function (u) { usersCache = u || []; });
+                return apiClient().getUsers().then(function (u) { state.users = u || []; })
+                    .catch(function () { state.users = []; });
             }
 
-            function loadAds() {
-                req('GET', 'Admin/Advertisements').then(function (ads) {
-                    var body = g('saAdsBody');
-                    body.innerHTML = '';
-                    g('saNoAds').hidden = ads && ads.length;
-                    (ads || []).forEach(function (ad) {
-                        var tr = document.createElement('tr');
-                        tr.style.borderBottom = '1px solid #333';
-                        [ad.Name, ad.Type, ad.Enabled ? 'Activo' : 'Inactivo', ad.Priority].forEach(function (v) {
-                            var td = document.createElement('td');
-                            td.textContent = v;
-                            td.style.padding = '6px 4px';
-                            tr.appendChild(td);
-                        });
-                        var actions = document.createElement('td');
-                        actions.style.padding = '6px 4px';
-                        actions.appendChild(mkBtn('Editar', function () { openEditor(ad); }));
-                        actions.appendChild(mkBtn(ad.Enabled ? 'Desactivar' : 'Activar', function () {
-                            req('POST', 'Admin/Advertisements/' + ad.Id + '/Enabled/' + (!ad.Enabled)).then(loadAds);
-                        }));
-                        actions.appendChild(mkBtn('Duplicar', function () {
-                            req('POST', 'Admin/Advertisements/' + ad.Id + '/Duplicate').then(loadAds);
-                        }));
-                        actions.appendChild(mkBtn('Vista previa', function () { preview(ad.Id); }));
-                        actions.appendChild(mkBtn('Eliminar', function () {
-                            if (confirm('¿Eliminar "' + ad.Name + '"?')) {
-                                req('DELETE', 'Admin/Advertisements/' + ad.Id).then(loadAds);
-                            }
-                        }));
-                        tr.appendChild(actions);
-                        body.appendChild(tr);
-                    });
-                });
-            }
-
-            function mkBtn(text, fn) {
+            function mkBtn(text, cls, fn) {
                 var b = document.createElement('button');
+                b.setAttribute('is', 'emby-button');
                 b.type = 'button';
-                b.className = 'raised';
+                b.className = 'raised ' + (cls || '');
                 b.textContent = text;
-                b.style.margin = '2px';
                 b.addEventListener('click', fn);
                 return b;
             }
 
-            /* -------- ad editor -------- */
+            function loadAds() {
+                return req('GET', 'Admin/Advertisements').then(function (ads) {
+                    ads = ads || [];
+                    var tbody = q(state.view, 'saAdsBody');
+                    tbody.textContent = '';
+                    q(state.view, 'saNoAds').hidden = ads.length > 0;
+                    ads.forEach(function (ad) {
+                        var tr = document.createElement('tr');
+                        [ad.Name, ad.Type, ad.Enabled ? 'Activo' : 'Inactivo', ad.Priority].forEach(function (v) {
+                            var td = document.createElement('td');
+                            td.textContent = v;
+                            tr.appendChild(td);
+                        });
+                        var td = document.createElement('td');
+                        td.className = 'saRowActions';
+                        td.appendChild(mkBtn('Editar', '', function () { openEditor(ad); }));
+                        td.appendChild(mkBtn(ad.Enabled ? 'Desactivar' : 'Activar', '', function () {
+                            req('POST', 'Admin/Advertisements/' + ad.Id + '/Enabled/' + (!ad.Enabled)).then(loadAds);
+                        }));
+                        td.appendChild(mkBtn('Duplicar', '', function () {
+                            req('POST', 'Admin/Advertisements/' + ad.Id + '/Duplicate').then(loadAds);
+                        }));
+                        td.appendChild(mkBtn('Vista previa', '', function () { preview(ad.Id); }));
+                        td.appendChild(mkBtn('Eliminar', '', function () {
+                            Dashboard.confirm('¿Eliminar "' + ad.Name + '"?', 'Eliminar anuncio', function (ok) {
+                                if (ok) { req('DELETE', 'Admin/Advertisements/' + ad.Id).then(loadAds); }
+                            });
+                        }));
+                        tr.appendChild(td);
+                        tbody.appendChild(tr);
+                    });
+                }).catch(function (err) {
+                    Dashboard.alert({ title: 'Error', message: 'No se pudieron cargar los anuncios: ' + errText(err) });
+                });
+            }
+
+            /* ---------------- editor modal ---------------- */
             function fillFileSelect(id, selected) {
-                var sel = g(id);
-                sel.innerHTML = '<option value="">(ninguno)</option>';
-                filesCache.forEach(function (f) {
+                var sel = q(state.modal, id);
+                sel.textContent = '';
+                var none = document.createElement('option'); none.value = ''; none.textContent = '(ninguno)';
+                sel.appendChild(none);
+                state.files.forEach(function (f) {
                     var o = document.createElement('option');
                     o.value = f.FileName;
                     o.textContent = f.FileName + ' [' + f.Type + ']';
@@ -560,46 +661,47 @@
                 });
             }
 
-            function buildDays(selected) {
-                var names = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-                var wrap = g('adDays');
-                wrap.innerHTML = '';
-                names.forEach(function (n, i) {
+            function buildChips(id, items, selected) {
+                var wrap = q(state.modal, id);
+                wrap.textContent = '';
+                items.forEach(function (it) {
                     var l = document.createElement('label');
                     var c = document.createElement('input');
                     c.type = 'checkbox';
-                    c.value = i;
-                    c.checked = selected && selected.indexOf(i) !== -1;
+                    c.value = it.value;
+                    c.checked = selected && selected.map(String).indexOf(String(it.value)) !== -1;
                     l.appendChild(c);
-                    l.appendChild(document.createTextNode(' ' + n));
+                    l.appendChild(document.createTextNode(' ' + it.label));
                     wrap.appendChild(l);
                 });
             }
 
-            function buildUsers(selected) {
-                var wrap = g('adUsers');
-                wrap.innerHTML = '';
-                usersCache.forEach(function (u) {
-                    var l = document.createElement('label');
-                    var c = document.createElement('input');
-                    c.type = 'checkbox';
-                    c.value = u.Id;
-                    c.checked = selected && selected.indexOf(u.Id) !== -1;
-                    l.appendChild(c);
-                    l.appendChild(document.createTextNode(' ' + u.Name));
-                    wrap.appendChild(l);
-                });
-            }
-
-            function collectChecked(containerId) {
+            function collectChips(id) {
                 return Array.prototype.slice
-                    .call(g(containerId).querySelectorAll('input:checked'))
+                    .call(q(state.modal, id).querySelectorAll('input:checked'))
                     .map(function (c) { return c.value; });
+            }
+
+            function syncActionRows() {
+                var action = val('adButtonAction');
+                q(state.modal, 'adButtonUrlRow').style.display = action === 'ExternalUrl' ? '' : 'none';
+                q(state.modal, 'adButtonItemRow').style.display = action === 'JellyfinItem' ? '' : 'none';
+            }
+            function syncFileRow() {
+                var t = val('adType');
+                q(state.modal, 'adFileSection').style.display = t === 'Text' ? 'none' : '';
+            }
+
+            function showError(msg) {
+                var e = q(state.modal, 'adFormError');
+                if (msg) { e.textContent = msg; e.hidden = false; e.scrollIntoView({ block: 'nearest' }); }
+                else { e.hidden = true; e.textContent = ''; }
             }
 
             function openEditor(ad) {
                 ad = ad || {};
-                g('saEditorTitle').textContent = ad.Id ? 'Editar anuncio' : 'Nuevo anuncio';
+                showError('');
+                q(state.modal, 'saEditorTitle').textContent = ad.Id ? 'Editar anuncio' : 'Nuevo anuncio';
                 setVal('adId', ad.Id || '');
                 setVal('adName', ad.Name || '');
                 setVal('adType', ad.Type || 'Image');
@@ -625,17 +727,79 @@
                 setVal('adEndDate', (ad.EndDate || '').substring(0, 10));
                 setVal('adStartTime', ad.StartTime || '');
                 setVal('adEndTime', ad.EndTime || '');
-                buildDays(ad.DaysOfWeek || []);
-                buildUsers(ad.AllowedUserIds || []);
-                g('saEditor').hidden = false;
+                buildChips('adDays',
+                    ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(function (n, i) { return { value: i, label: n }; }),
+                    ad.DaysOfWeek || []);
+                buildChips('adUsers',
+                    state.users.map(function (u) { return { value: u.Id, label: u.Name }; }),
+                    ad.AllowedUserIds || []);
+                syncActionRows();
+                syncFileRow();
+
+                state.lastFocus = document.activeElement;
+                state.modal.style.display = 'flex';
+                document.addEventListener('keydown', onModalKey, true);
+                setTimeout(function () { var n = q(state.modal, 'adName'); if (n) { n.focus(); } }, 30);
             }
 
-            function saveAd(e) {
-                e.preventDefault();
+            function closeEditor() {
+                state.modal.style.display = 'none';
+                document.removeEventListener('keydown', onModalKey, true);
+                showError('');
+                try { if (state.lastFocus && state.lastFocus.focus) { state.lastFocus.focus(); } } catch (e) { /* noop */ }
+            }
+
+            function onModalKey(e) {
+                if (state.modal.style.display === 'none') { return; }
+                if (e.key === 'Escape') { e.preventDefault(); closeEditor(); return; }
+                if (e.key === 'Tab') {
+                    var f = state.modal.querySelectorAll(
+                        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                    f = Array.prototype.filter.call(f, function (el) {
+                        return !el.disabled && el.offsetParent !== null;
+                    });
+                    if (!f.length) { return; }
+                    var first = f[0], last = f[f.length - 1];
+                    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+                    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+                }
+            }
+
+            function validateAd() {
+                var name = val('adName').trim();
+                if (!name) { return 'El nombre interno es obligatorio.'; }
+                var type = val('adType');
+                if ((type === 'Image' || type === 'Video') && !val('adMediaFile')) {
+                    return 'Los anuncios de imagen o vídeo requieren un archivo.';
+                }
+                var dur = num('adDuration');
+                if (dur < 1 || dur > 600) { return 'La duración debe estar entre 1 y 600 segundos.'; }
+                var skip = num('adSkipAfter');
+                if (skip < 0 || skip > 600) { return '«Permitir omitir después de» debe estar entre 0 y 600.'; }
+                var prio = num('adPriority');
+                if (prio < 0 || prio > 1000) { return 'La prioridad debe estar entre 0 y 1000.'; }
+                var action = val('adButtonAction');
+                if (action === 'ExternalUrl' && !/^https?:\/\//i.test(val('adButtonUrl').trim())) {
+                    return 'La URL del botón debe empezar por http:// o https://.';
+                }
+                if (action === 'JellyfinItem' && !val('adButtonItemId').trim()) {
+                    return 'Indica el identificador del contenido de Jellyfin.';
+                }
+                var re = /^([01]\d|2[0-3]):[0-5]\d$/;
+                if (val('adStartTime') && !re.test(val('adStartTime'))) { return 'La hora de inicio no es válida (HH:mm).'; }
+                if (val('adEndTime') && !re.test(val('adEndTime'))) { return 'La hora de finalización no es válida (HH:mm).'; }
+                return null;
+            }
+
+            function saveAd() {
+                showError('');
+                var problem = validateAd();
+                if (problem) { showError(problem); return; }
+
                 var id = val('adId');
                 var body = {
                     Id: id || '00000000-0000-0000-0000-000000000000',
-                    Name: val('adName'),
+                    Name: val('adName').trim(),
                     Type: val('adType'),
                     Title: val('adTitle'),
                     Description: val('adDescription'),
@@ -659,31 +823,37 @@
                     EndDate: val('adEndDate') ? val('adEndDate') + 'T23:59:59' : null,
                     StartTime: val('adStartTime') || null,
                     EndTime: val('adEndTime') || null,
-                    DaysOfWeek: collectChecked('adDays').map(Number),
-                    AllowedUserIds: collectChecked('adUsers')
+                    DaysOfWeek: collectChips('adDays').map(Number),
+                    AllowedUserIds: collectChips('adUsers')
                 };
+
+                var btn = q(state.modal, 'saSaveAd');
+                var span = btn.querySelector('span') || btn;
+                var label = span.textContent;
+                btn.disabled = true; span.textContent = 'Guardando…';
+
                 var path = id ? 'Admin/Advertisements/' + id : 'Admin/Advertisements';
                 req('POST', path, body).then(function () {
-                    g('saEditor').hidden = true;
+                    btn.disabled = false; span.textContent = label;
+                    closeEditor();
+                    Dashboard.alert('Anuncio guardado.');
                     loadAds();
-                }).catch(function (e) { Dashboard.alert('No se pudo guardar el anuncio: ' + e.message); });
-                return false;
+                }).catch(function (err) {
+                    btn.disabled = false; span.textContent = label;
+                    showError('No se pudo guardar: ' + errText(err));
+                });
             }
 
-            /* -------- preview -------- */
-            function ensurePreviewStyle() {
-                if (document.getElementById('startup-ads-style')) { return; }
-                var link = document.createElement('link');
-                link.id = 'startup-ads-style';
-                link.rel = 'stylesheet';
-                link.href = base('ClientStyle');
-                document.head.appendChild(link);
-            }
-
+            /* ---------------- preview ---------------- */
             function preview(adId) {
-                ensurePreviewStyle();
-                fetch(base('Admin/Preview') + '?adId=' + adId, { headers: authHeaders() })
-                    .then(function (r) { return r.json(); })
+                if (!document.getElementById('startup-ads-style')) {
+                    var link = document.createElement('link');
+                    link.id = 'startup-ads-style';
+                    link.rel = 'stylesheet';
+                    link.href = apiClient().getUrl('StartupAds/ClientStyle');
+                    document.head.appendChild(link);
+                }
+                apiClient().ajax({ type: 'GET', url: apiClient().getUrl('StartupAds/Admin/Preview', { adId: adId }), dataType: 'json' })
                     .then(function (cfg) {
                         if (!cfg.Ads || !cfg.Ads.length) { Dashboard.alert('Nada que previsualizar.'); return; }
                         var ad = cfg.Ads[0];
@@ -698,10 +868,11 @@
                         if (ad.MediaUrl) {
                             var mw = document.createElement('div');
                             mw.className = 'startup-ads-media';
-                            var mUrl = api().getUrl(ad.MediaUrl, { api_key: api().accessToken() });
+                            var mUrl = apiClient().getUrl(ad.MediaUrl, { ApiKey: apiClient().accessToken() });
                             var isVideo = ad.Type === 'Video' || /\.(mp4|webm|m4v|mov|ogv|ogg)(\?|$)/i.test(ad.MediaUrl);
                             var el = isVideo
-                                ? Object.assign(document.createElement('video'), { src: mUrl, autoplay: true, muted: true, controls: true, playsInline: true })
+                                ? Object.assign(document.createElement('video'),
+                                    { src: mUrl, autoplay: true, muted: true, controls: true, playsInline: true })
                                 : Object.assign(document.createElement('img'), { src: mUrl });
                             el.className = isVideo ? 'startup-ads-video' : 'startup-ads-image';
                             mw.appendChild(el);
@@ -718,35 +889,68 @@
                         close.type = 'button';
                         close.className = 'startup-ads-btn startup-ads-skip startup-ads-ready';
                         close.textContent = 'Cerrar vista previa';
-                        close.addEventListener('click', function () { ov.remove(); });
+                        var cleanup = function () {
+                            var v = ov.querySelector('video');
+                            if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (e) { /* noop */ } }
+                            ov.remove();
+                        };
+                        close.addEventListener('click', cleanup);
                         f.appendChild(close);
                         card.appendChild(f);
                         ov.appendChild(card);
                         document.body.appendChild(ov);
-                    });
+                    })
+                    .catch(function (err) { Dashboard.alert({ title: 'Error', message: errText(err) }); });
             }
 
-            /* -------- wire up -------- */
-            var wired = false;
-            function onShow() {
-                page = document.querySelector('#startupAdsConfigPage');
-                if (!page) { return; }
+            /* ---------------- init ---------------- */
+            function init(view) {
+                if (!view || view.__saInit) { return; }
+                if (!apiClient() || !apiClient().accessToken()) { return; }
+                view.__saInit = true;
+                state.view = view;
+
+                /* Move the modal out of the (transform-animated, cache-recycled) page into <body>
+                   so it is a true viewport overlay and always uniquely addressable. */
+                var existing = document.getElementById(MODAL_ID);
+                if (existing) { existing.remove(); }
+                var modal = view.querySelector('#saEditor');
+                modal.id = MODAL_ID;
+                modal.parentNode.removeChild(modal);
+                document.body.appendChild(modal);
+                state.modal = modal;
+
+                view.querySelector('#saGeneralForm').addEventListener('submit', saveConfig);
+                view.querySelector('#saValidatePath').addEventListener('click', validatePath);
+                view.querySelector('#saScan').addEventListener('click', scan);
+                view.querySelector('#saNewAd').addEventListener('click', function () { openEditor(null); });
+
+                modal.querySelector('#saCancelEdit').addEventListener('click', closeEditor);
+                modal.querySelector('#saModalX').addEventListener('click', closeEditor);
+                modal.querySelector('#saSaveAd').addEventListener('click', saveAd);
+                modal.querySelector('#saAdForm').addEventListener('submit', function (e) { e.preventDefault(); saveAd(); });
+                modal.querySelector('#adButtonAction').addEventListener('change', syncActionRows);
+                modal.querySelector('#adType').addEventListener('change', syncFileRow);
+                modal.addEventListener('mousedown', function (e) { if (e.target === modal) { closeEditor(); } });
+
+                /* Clean up the body-level modal when this page instance is destroyed. */
+                view.addEventListener('viewdestroy', function () {
+                    var m = document.getElementById(MODAL_ID);
+                    if (m) { m.remove(); }
+                });
+
                 loadConfig();
                 Promise.all([loadFiles(), loadUsers()]).then(loadAds);
-                if (wired) { return; }
-                wired = true;
-                g('saGeneralForm').addEventListener('submit', saveConfig);
-                g('saValidatePath').addEventListener('click', validatePath);
-                g('saScan').addEventListener('click', scan);
-                g('saNewAd').addEventListener('click', function () { openEditor(null); });
-                g('saCancelEdit').addEventListener('click', function () { g('saEditor').hidden = true; });
-                g('saAdForm').addEventListener('submit', saveAd);
             }
 
-            var pageEl = document.querySelector('#startupAdsConfigPage');
-            pageEl.addEventListener('viewshow', onShow);
-            pageEl.addEventListener('pageshow', onShow);
-            if (window.ApiClient && window.ApiClient.accessToken()) { onShow(); }
+            /* viewshow bubbles to document and carries the live view as target — the only
+               reliable hook given Jellyfin recycles up to 3 page containers. */
+            document.addEventListener('viewshow', function (e) {
+                if (e.target && e.target.id === 'startupAdsConfigPage') { init(e.target); }
+            });
+            /* If the script runs after viewshow already fired, init the newest instance now. */
+            var nodes = document.querySelectorAll('#startupAdsConfigPage');
+            if (nodes.length) { init(nodes[nodes.length - 1]); }
         })();
     </script>
 </div>

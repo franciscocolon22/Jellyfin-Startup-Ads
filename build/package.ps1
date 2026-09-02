@@ -2,10 +2,10 @@
     Builds a Jellyfin-installable ZIP for Jellyfin Startup Ads and refreshes manifest.json
     with the real MD5 checksum and file size.
 
-    Usage:  pwsh ./build/package.ps1 [-Version 1.1.0.0]
+    Usage:  pwsh ./build/package.ps1 [-Version 1.2.0.0]
 #>
 param(
-    [string]$Version = "1.1.0.0"
+    [string]$Version = "1.2.0.0"
 )
 
 $ErrorActionPreference = "Stop"
@@ -13,7 +13,7 @@ $repo = Split-Path -Parent $PSScriptRoot
 $proj = Join-Path $repo "Jellyfin.Plugin.StartupAds/Jellyfin.Plugin.StartupAds.csproj"
 $artifacts = Join-Path $repo "artifacts"
 $stage = Join-Path $artifacts "stage"
-$tag = "v" + ($Version -replace '\.\d+$','')          # 1.1.0.0 -> v1.1.0
+$tag = "v" + ($Version -replace '\.\d+$','')          # 1.2.0.0 -> v1.2.0
 $zipName = "jellyfin-startup-ads_$Version.zip"
 $zipPath = Join-Path $artifacts $zipName
 

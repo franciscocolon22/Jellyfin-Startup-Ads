@@ -33,6 +33,17 @@
                         <span>Mostrar anuncios al iniciar Jellyfin Web</span>
                     </label>
                 </div>
+                <div class="checkboxContainer">
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" id="saInject" />
+                        <span>Inyectar el script del plugin en Jellyfin Web (en memoria, sin tocar archivos)</span>
+                    </label>
+                </div>
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="saWebBasePath">Ruta base de Jellyfin Web</label>
+                    <input is="emby-input" type="text" id="saWebBasePath" placeholder="/web" />
+                    <div class="fieldDescription">Cámbialo solo si tu servidor usa una ruta base distinta de <code>/web</code>.</div>
+                </div>
 
                 <div class="inputContainer">
                     <label class="inputLabel inputLabelUnfocused" for="saAdsDirectory">Ruta de anuncios</label>
@@ -389,6 +400,8 @@
                 req('GET', 'Admin/Configuration').then(function (c) {
                     setChk('saEnabled', c.Enabled);
                     setChk('saShowOnStartup', c.ShowOnStartup);
+                    setChk('saInject', c.InjectClientScript);
+                    setVal('saWebBasePath', c.WebBasePath || '/web');
                     setVal('saAdsDirectory', c.AdsDirectory);
                     setVal('saSourceMode', c.SourceMode);
                     setVal('saOrderMode', c.OrderMode);
@@ -423,6 +436,8 @@
                 var body = {
                     Enabled: chk('saEnabled'),
                     ShowOnStartup: chk('saShowOnStartup'),
+                    InjectClientScript: chk('saInject'),
+                    WebBasePath: val('saWebBasePath') || '/web',
                     AdsDirectory: val('saAdsDirectory'),
                     SourceMode: val('saSourceMode'),
                     OrderMode: val('saOrderMode'),

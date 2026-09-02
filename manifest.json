@@ -9,8 +9,16 @@
         "imageUrl": "",
         "versions": [
             {
+                "version": "1.2.0.0",
+                "changelog": "Inyección del script del cliente reescrita: middleware ASP.NET Core (IStartupFilter) que reescribe la respuesta de jellyfin-web/index.html en memoria, sin escribir nunca en disco. Resistente a actualizaciones de Jellyfin Web, compatible con Docker y sistemas de archivos de solo lectura. Nuevas opciones InjectClientScript y WebBasePath. Tests de integración del pipeline (TestServer). Se mantienen todas las correcciones de v1.1.0.",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/franciscocolon22/Jellyfin-Startup-Ads/releases/download/v1.2.0/jellyfin-startup-ads_1.2.0.0.zip",
+                "checksum": "f8587b4273fa2cf9256b5cb30974ab29",
+                "timestamp": "2026-09-02T18:00:00Z"
+            },
+            {
                 "version": "1.1.0.0",
-                "changelog": "Migración a Jellyfin 10.11.11 / .NET 9 (targetAbi 10.11.0.0). Seguridad: canonicalización de symlinks y bloqueo de rutas UNC, validación de firma de archivo, rechazo explícito de nombres inválidos, endpoint Background con las mismas comprobaciones que Media, tracking con conjunto cerrado de eventos. Correcciones: horarios que cruzan medianoche, doble conteo de 'completed', detección de cambio de usuario, OncePerSession por usuario, limpieza total del DOM, sin polling infinito. CSS con espacio de nombres .startup-ads-*.",
+                "changelog": "Migración a Jellyfin 10.11.11 / .NET 9 (targetAbi 10.11.0.0). Seguridad: symlinks, UNC, firma de archivo, endpoint Background, tracking con conjunto cerrado de eventos. Correcciones: horarios que cruzan medianoche, doble 'completed', cambio de usuario, OncePerSession por usuario. CSS con espacio de nombres .startup-ads-*.",
                 "targetAbi": "10.11.0.0",
                 "sourceUrl": "https://github.com/franciscocolon22/Jellyfin-Startup-Ads/releases/download/v1.1.0/jellyfin-startup-ads_1.1.0.0.zip",
                 "checksum": "c3c00c315f9c86599fd34f22424e497b",

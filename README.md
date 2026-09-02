@@ -12,7 +12,7 @@ desde el Dashboard, con controles de seguridad adecuados.
 |---|---|
 | Jellyfin | **10.11.11** (targetAbi `10.11.0.0`) |
 | .NET | **9.0** |
-| Versión del plugin | **1.1.0.0** |
+| Versión del plugin | **1.2.0.0** |
 | Paquetes | `Jellyfin.Controller` / `Jellyfin.Model` 10.11.11 (`ExcludeAssets=runtime`) |
 | Licencia | MIT |
 
@@ -51,10 +51,13 @@ ejecutan el script del plugin.
 
 | Cliente | Soporte | Nota |
 |---|---|---|
-| Jellyfin Web (Chrome, Edge, Firefox, Safari) | ✅ | Objetivo principal. |
-| Jellyfin Media Player (escritorio) | ✅ | Embebe Jellyfin Web. |
-| Apps Android / iOS | ⚠️ Parcial | Mayormente nativas; el overlay solo aparece donde se renderiza Jellyfin Web. Autoplay con sonido casi siempre bloqueado. |
-| Android TV / Fire TV / Roku / Kodi / Swiftfin | ❌ | UI nativa, no ejecutan JS de Jellyfin Web. |
+| Jellyfin Web en navegador (Chrome, Edge, Firefox, Safari) | Diseñado para este caso — **pendiente de validación en servidor real** | Objetivo principal. |
+| Jellyfin Media Player (escritorio) | Por validar | Embebe Jellyfin Web; debería comportarse como el navegador. |
+| Apps Android / iOS | Parcial, por validar | Mayormente nativas; el overlay solo podría aparecer en las vistas web. Autoplay con sonido casi siempre bloqueado. |
+| Android TV / Fire TV / Roku / Kodi / Swiftfin | No soportado | UI nativa, no ejecutan JS de Jellyfin Web. |
+
+> Ningún cliente marcado como "por validar" ha sido probado todavía en un Jellyfin
+> real. Se actualizará esta tabla tras la prueba en el servidor.
 
 **Autoplay de vídeo**: se usa `autoplay + muted` (política de los navegadores); el
 sonido automático no es posible de forma fiable en ningún navegador.
@@ -83,7 +86,7 @@ DLL resultante: `Jellyfin.Plugin.StartupAds/bin/Release/net9.0/Jellyfin.Plugin.S
 ### Empaquetado (ZIP instalable)
 
 ```powershell
-pwsh ./build/package.ps1              # -> artifacts/jellyfin-startup-ads_1.1.0.0.zip
+pwsh ./build/package.ps1              # -> artifacts/jellyfin-startup-ads_1.2.0.0.zip
 ```
 
 El ZIP contiene únicamente `Jellyfin.Plugin.StartupAds.dll` y `meta.json`
@@ -96,8 +99,8 @@ Proceso de release:
 
 1. `pwsh ./build/package.ps1`
 2. Copiar el MD5 impreso a `manifest.json` (`checksum`).
-3. `git tag v1.1.0 && git push origin v1.1.0`
-4. Crear el *GitHub Release* `v1.1.0` y subir el ZIP como asset.
+3. `git tag v1.2.0 && git push origin v1.2.0`
+4. Crear el *GitHub Release* `v1.2.0` y subir el ZIP como asset.
 5. Commit de `manifest.json`.
 
 ---
@@ -119,10 +122,10 @@ Luego **Catálogo** → *Jellyfin Startup Ads* → **Instalar** → reiniciar Je
 **Linux** (paquete `.deb`/`systemd`, ruta de datos por defecto):
 
 ```bash
-sudo mkdir -p "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.1.0.0"
-sudo unzip artifacts/jellyfin-startup-ads_1.1.0.0.zip \
-     -d "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.1.0.0"
-sudo chown -R jellyfin:jellyfin "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.1.0.0"
+sudo mkdir -p "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.2.0.0"
+sudo unzip artifacts/jellyfin-startup-ads_1.2.0.0.zip \
+     -d "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.2.0.0"
+sudo chown -R jellyfin:jellyfin "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.2.0.0"
 sudo systemctl restart jellyfin
 ```
 
@@ -130,15 +133,24 @@ sudo systemctl restart jellyfin
 > paquete oficial; en Docker suele ser `/config`. Compruébala en
 > Dashboard → **Panel de control → Rutas**.
 
-**Windows**: `%ProgramData%\Jellyfin\Server\plugins\Jellyfin Startup Ads_1.1.0.0\`
+**Windows**: `%ProgramData%\Jellyfin\Server\plugins\Jellyfin Startup Ads_1.2.0.0\`
 (descomprimir el ZIP ahí) y reiniciar el servicio Jellyfin.
 
 ### Verificación
 
 Tras reiniciar: Dashboard → **Plugins** → debe aparecer **Jellyfin Startup Ads**
-(estado *Active*) y abrir su **Configuración** sin errores. El log del servidor
-muestra `[StartupAds] Plugin starting; ensuring client script injection.` y, si
-Jellyfin puede escribir en `jellyfin-web`, `Client script injected into .../index.html`.
+(estado *Active*) y abrir su **Configuración** sin errores. En el log del servidor:
+
+```
+[StartupAds] index.html injection middleware registered (in-memory, no disk changes).
+[StartupAds] Client script injected into index.html response (/web/index.html).   <- al primer GET de la web
+```
+
+Comprobación rápida desde el propio servidor:
+
+```bash
+curl -s http://localhost:8096/web/index.html | grep -o 'startup-ads-inject'   # -> startup-ads-inject
+```
 
 ### Carpeta de anuncios
 
@@ -273,41 +285,82 @@ visualización** aunque coincidan `timeout` y `video ended`.
 
 ---
 
-## Mecanismo de inyección en Jellyfin Web
+## Mecanismo de inyección en Jellyfin Web (v1.2.0)
 
-Jellyfin 10.11.11 sigue sirviendo `jellyfin-web` como ficheros estáticos desde
-`IServerApplicationPaths.WebPath` y **no** ofrece un hook oficial para añadir un
-script al cliente. Alternativas evaluadas:
+**Jellyfin core, incluida la 10.11.11, NO tiene ninguna API oficial** para que un
+plugin añada un script a `jellyfin-web`. El PR que lo proponía
+([jellyfin/jellyfin#9095](https://github.com/jellyfin/jellyfin/pull/9095),
+`IWebFileTransformationWriteService`) fue **cerrado sin fusionar**; los mantenedores
+consideran que modificar el frontend "no es algo que los plugins deban hacer".
+Alternativas reales evaluadas:
 
-- **(A) Edición controlada de `index.html`** — *elegida*.
-- (B) Depender del plugin externo *File Transformation* — descartada: añade una
-  dependencia dura de terceros y un segundo punto de fallo.
-- (C) Branding/CSS — insuficiente: el CSS no ejecuta lógica.
+| Opción | Veredicto |
+|---|---|
+| **(A) Middleware ASP.NET Core en memoria** (`IStartupFilter`) | **Elegida.** Ver abajo. |
+| (B) Parchear `jellyfin-web/index.html` en disco (v1.0–v1.1) | Descartada: falla si `web/` es de solo lectura o propiedad de `root` (Docker), se pierde en cada actualización de Jellyfin Web, deja residuo si el plugin cae. |
+| (C) Plugin externo *File Transformation* (IAmParadox27) | Descartada como dependencia: es de terceros, se invoca por reflexión y ha tenido fallos de arranque en 10.11.x. Compatible como **complemento opcional** si el usuario ya lo tiene. |
+| (D) API oficial de Jellyfin | No existe en 10.11.11. |
 
-`ScriptInjectionHostedService` inserta **una sola línea** antes de `</body>`:
+### Cómo funciona (A)
 
-```html
-<script id="startup-ads-inject" src="StartupAds/ClientScript" defer></script>
+`PluginServiceRegistrator` registra un `IStartupFilter` — un punto de extensión
+**estándar de ASP.NET Core**, no una API de Jellyfin — que inserta
+`IndexHtmlInjectionMiddleware` al frente del pipeline. Ese middleware:
+
+1. detecta las peticiones `GET`/`HEAD` de `…/index.html`, `/<WebBasePath>` o `/`;
+2. quita `Accept-Encoding` para recibir el HTML sin comprimir;
+3. almacena la respuesta, y si es `200` + `text/html` inserta **en memoria** una
+   línea antes de `</body>`:
+   ```html
+   <script id="startup-ads-inject" src="StartupAds/ClientScript" defer></script>
+   ```
+4. reescribe `Content-Length` y envía el HTML modificado.
+
+Propiedades:
+
+- **Cero escrituras en disco** → resistente a actualizaciones de Jellyfin Web,
+  compatible con Docker y con `web/` de solo lectura o propiedad de `root`.
+- **Sin paso de limpieza**: desinstalar el plugin quita el middleware; no queda
+  residuo en ningún archivo.
+- **Idempotente**: si el HTML ya contiene la marca, no se vuelve a inyectar.
+- **Solo toca `index.html`**: cualquier otra respuesta (JS, CSS, API, 304…) pasa
+  intacta.
+- **A prueba de fallos**: si el middleware lanza una excepción, se sirve la
+  respuesta original y Jellyfin Web sigue funcionando.
+- Configurable: casilla **Inyectar el script** (on por defecto) y **Ruta base de
+  Jellyfin Web** (`/web` por defecto) en la página del plugin.
+
+El JS y el CSS los sirve el backend del plugin (`GET StartupAds/ClientScript` /
+`ClientStyle`), así que actualizar el plugin actualiza el frontend.
+
+> **Estado de validación**: el mecanismo está cubierto por **tests de integración
+> del pipeline real de ASP.NET Core** (`InjectionMiddlewareTests`, `TestServer`) —
+> inyecta en HTML, ignora no-HTML y API, funciona con `Accept-Encoding: gzip`, es
+> idempotente. **No** está todavía verificado dentro de un Jellyfin 10.11.11 real
+> (ver *Prueba real en el servidor*).
+
+---
+
+## Docker
+
+Con `linuxserver/jellyfin` o la imagen oficial, `jellyfin-web` forma parte de la
+capa de imagen (solo lectura). La inyección **en memoria** de v1.2.0 no toca esos
+archivos, así que funciona igual que en una instalación nativa. Solo hay que
+montar la carpeta de anuncios como volumen y configurar esa ruta en el plugin:
+
+```yaml
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:10.11.11
+    volumes:
+      - ./config:/config
+      - ./cache:/cache
+      - ./media:/media
+      - ./startup-ads:/startup-ads        # <- carpeta de anuncios
 ```
 
-- **idempotente**: nunca se inserta dos veces (marca `startup-ads-inject`);
-- **reversible**: se elimina en `StopAsync` (parada/desinstalación), y **solo**
-  esa línea (regex sobre la marca); nunca se restaura una copia antigua del
-  archivo;
-- **tolerante**: si `index.html` no existe, o es de solo lectura, o no hay
-  permisos de escritura, o se está escribiendo de forma concurrente → se registra
-  un aviso y **Jellyfin sigue funcionando**;
-- una **actualización de Jellyfin Web** regenera un `index.html` limpio; el
-  servicio vuelve a añadir la línea en el siguiente arranque.
-
-El JavaScript y el CSS los sirve el propio backend del plugin
-(`GET StartupAds/ClientScript` / `ClientStyle`), de modo que actualizar el plugin
-actualiza el frontend sin tocar ningún fichero del sistema.
-
-Si el proceso Jellyfin no tiene permiso de escritura sobre `jellyfin-web`
-(frecuente si `web/` es propiedad de `root`), el plugin **no** puede inyectar el
-script. Solución: `sudo chown -R jellyfin:jellyfin /usr/share/jellyfin/web` o
-servir el `web/` desde una ruta escribible por Jellyfin.
+Plugins: `/config/plugins/Jellyfin Startup Ads_1.2.0.0/` (dentro del volumen
+`config`). Ruta de anuncios en el plugin: `/startup-ads`.
 
 ---
 
@@ -330,30 +383,110 @@ servir el `web/` desde una ruta escribible por Jellyfin.
 |---|---|
 | El plugin no aparece en el Dashboard | ZIP en la carpeta equivocada; comprobar `<DataDir>/plugins/` y reiniciar. |
 | No aparece ningún anuncio | ¿`Enabled` y `ShowOnStartup`? ¿Reiniciaste Jellyfin tras instalar? ¿La ruta valida OK? ¿Hay anuncios activos y en horario? |
-| Log: "No write permission on jellyfin-web/index.html" | Jellyfin no puede escribir en `web/`; ver sección de inyección. |
+| `curl …/web/index.html` no muestra `startup-ads-inject` | El middleware no interceptó: revisa el log (`middleware registered`), que `InjectClientScript` esté activo y que `WebBasePath` coincida con tu ruta base. Prueba con otro plugin de inyección (JavaScript Injector) como alternativa. |
+| El script se inyecta pero el overlay no aparece | Caché del navegador: fuerza recarga (Ctrl+F5). Revisa la consola del navegador y `GET /StartupAds/Config`. |
+| No aparece ningún anuncio | ¿`Enabled` y `ShowOnStartup`? ¿La ruta valida OK? ¿Hay anuncios activos y en horario para tu usuario? |
 | El anuncio no reaparece | `FrequencyMode = OncePerSession`: cierra la pestaña o usa `EveryStartup`. |
 | El vídeo no arranca solo | El navegador bloquea autoplay con sonido: mantén `MutedVideo`. |
-| Tras actualizar Jellyfin Web desaparece | Normal: reinicia Jellyfin y el plugin reinyecta la línea. |
+| Docker: nada que hacer con `web/` | Correcto — v1.2.0 no toca `jellyfin-web` en disco. |
 | "Nombre de archivo no válido" al guardar un anuncio | El nombre contenía `/`, `\`, `..` o `:`. Usa solo el nombre del fichero. |
-| Sale a medias en el móvil | Las apps móviles son nativas salvo algunas vistas web; comportamiento esperado. |
+| Logs | `journalctl -u jellyfin -f | grep StartupAds` (systemd) o `docker logs -f jellyfin 2>&1 | grep StartupAds`. |
 
 ---
 
 ## Limitaciones
 
-1. Clientes nativos (Android TV, Roku, Kodi, Swiftfin) **no** soportados.
-2. La inyección modifica `index.html`; requiere permiso de escritura sobre
-   `jellyfin-web` y se pierde (y se reinyecta) con cada actualización de Jellyfin
-   Web. No es una API oficial.
+1. Clientes nativos (Android TV, Roku, Kodi, Swiftfin) **no** soportados: no
+   ejecutan Jellyfin Web.
+2. **Jellyfin core no tiene API oficial de inyección** (PR #9095 cerrado). El
+   mecanismo de v1.2.0 usa `IStartupFilter` (extensión estándar de ASP.NET Core).
+   Si un futuro Jellyfin cambiara su forma de servir `index.html` o el orden del
+   pipeline, habría que revisar `IndexHtmlInjectionMiddleware`.
 3. Autoplay de vídeo **con** sonido: no es posible de forma fiable.
 4. La navegación a un item usa `Dashboard.navigate` / hash routing; si Jellyfin
    cambia su router habrá que ajustar `handleAction` en `startup-ads.js`.
 5. Estadísticas: solo contadores agregados, sin panel de informes.
-6. **No verificado en este entorno**: instalación y arranque en un servidor
-   Jellyfin 10.11.11 real, la inyección sobre un `index.html` real y el
-   comportamiento en navegador. Sí verificado: compilación contra los ensamblados
-   reales de 10.11.11, `targetAbi` correcto, ausencia de ensamblados de Jellyfin
-   en la salida, y 61 tests en verde.
+6. **Qué está probado y qué no** (ver también *Prueba real en el servidor*):
+   - ✅ *Test unitario*: 60 tests (selección, horarios incl. medianoche, seguridad
+     de rutas, tracking, `IndexHtmlInjector`).
+   - ✅ *Test de integración de pipeline*: 6 tests con `TestServer` (ASP.NET Core
+     real) que ejercitan el middleware de inyección.
+   - ✅ *Test de build / package*: `dotnet build` 0 warnings, `dotnet test` 73/73,
+     ZIP reproducible sin ensamblados de Jellyfin.
+   - ❌ *Test real en Jellyfin 10.11.11*: **no realizado** (no hay servidor en el
+     entorno de desarrollo).
+   - ❌ *Test real en navegador*: **no realizado**.
+
+---
+
+## Prueba real en el servidor (checklist)
+
+> Este proyecto **no** puede declararse "producción" hasta completar esta lista en
+> el servidor Jellyfin 10.11.11 real.
+
+### Procedimiento
+
+```
+BUILD      pwsh ./build/package.ps1
+           # -> artifacts/jellyfin-startup-ads_1.2.0.0.zip  (MD5 en release-info.json)
+
+UPLOAD     scp artifacts/jellyfin-startup-ads_1.2.0.0.zip usuario@servidor:/tmp/
+
+INSTALL    ssh usuario@servidor
+           sudo mkdir -p "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.2.0.0"
+           sudo unzip -o /tmp/jellyfin-startup-ads_1.2.0.0.zip \
+                -d "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.2.0.0"
+           sudo chown -R jellyfin:jellyfin "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.2.0.0"
+
+RESTART    sudo systemctl restart jellyfin
+
+VALIDATE   systemctl status jellyfin --no-pager
+           journalctl -u jellyfin -b --no-pager | grep -Ei 'StartupAds|error|exception'
+           find /var/lib/jellyfin/plugins -iname '*StartupAds*'
+           curl -s http://localhost:8096/web/index.html | grep -o startup-ads-inject
+```
+
+### Checklist
+
+**Plugin**
+- [ ] Aparece en Dashboard → Plugins, estado *Active*
+- [ ] `journalctl` sin `Unhandled exception` / `TypeLoadException` / `MissingMethodException` del plugin
+- [ ] Se ve `[StartupAds] index.html injection middleware registered`
+
+**Inyección**
+- [ ] `curl …/web/index.html | grep startup-ads-inject` → coincide
+- [ ] `GET …/web/main.*.js` NO contiene la marca
+- [ ] Tras `sudo apt upgrade jellyfin-web` (o nueva imagen Docker) sigue inyectando sin re-instalar
+
+**Configuración**
+- [ ] La página de configuración abre sin errores de consola
+- [ ] Se guarda el directorio de anuncios; **Validar ruta** responde
+- [ ] Crear / editar / duplicar / activar-desactivar / eliminar anuncio
+- [ ] **Escanear** importa archivos; borrar un archivo + escanear elimina su anuncio auto
+- [ ] **Vista previa** muestra el overlay
+
+**Archivos**: probar JPG, PNG, WEBP, MP4, WEBM válidos + un ejecutable renombrado a `.png` (debe rechazarse)
+
+**Jellyfin Web** (navegador): abrir, login, logout, cambio de usuario, recarga,
+navegar, reproducir contenido, volver al dashboard — el overlay aparece cuando toca
+y **nunca** deja a Jellyfin inutilizable.
+
+**Anuncio**: aparece · countdown 5→4→3→2→1 · *Omitir* en el momento correcto ·
+imagen se ve · vídeo se reproduce y termina · texto correcto · botón `ExternalUrl`
+abre pestaña · botón `JellyfinItem` navega · click se registra (con estadísticas on).
+
+**Usuarios**: anónimo (sin overlay) · autenticado · cambio de usuario · logout→login
+· recarga · varias pestañas · cerrar y reabrir navegador · incógnito.
+
+**Seguridad** (con un token de usuario normal, no admin):
+```bash
+TOKEN=...; H="Authorization: MediaBrowser Token=$TOKEN"
+curl -s -o /dev/null -w '%{http_code}\n' -H "$H" http://localhost:8096/StartupAds/Config            # 200
+curl -s -o /dev/null -w '%{http_code}\n'         http://localhost:8096/StartupAds/Config            # 401
+curl -s -o /dev/null -w '%{http_code}\n' -H "$H" http://localhost:8096/StartupAds/Admin/Advertisements  # 403
+curl -s -o /dev/null -w '%{http_code}\n' -H "$H" http://localhost:8096/StartupAds/Track/<adId>/hack     # 400
+curl -s -o /dev/null -w '%{http_code}\n' -H "$H" "http://localhost:8096/StartupAds/Media/<adIdDeOtroUsuario>"  # 403/404
+```
 
 ---
 
@@ -363,33 +496,12 @@ servir el `web/` desde una ruta escribible por Jellyfin.
 2. Ajustar `TargetFramework` si cambia el runtime.
 3. Actualizar `targetAbi` en `manifest.json`, `build.yaml` y `build/meta.json`.
 4. Verificar que siguen existiendo: `IHasWebPages`, `IPluginServiceRegistrator`,
-   `IServerApplicationPaths.WebPath`, `ILibraryManager.GetItemById`, las policies
-   `DefaultAuthorization` / `RequiresElevation`, el claim `Jellyfin-UserId`.
-5. Revisar el nombre/ubicación de `web/index.html` y el router del cliente.
-6. `dotnet test` y prueba manual con la lista de abajo.
-
----
-
-## Pruebas manuales
-
-1. Instalar, reiniciar, configurar ruta, crear un anuncio de imagen → abrir
-   Jellyfin Web: aparece el overlay automáticamente.
-2. Contador: `5 → 4 → 3 → 2 → 1 → Omitir`.
-3. Antes del tiempo: *Omitir* deshabilitado (u oculto según el modo).
-4. Después del tiempo: *Omitir* habilitado.
-5–8. Un anuncio de cada tipo: Imagen / Vídeo / Texto / Multimedia.
-9. Botón `ExternalUrl` → abre pestaña nueva.
-10. Botón `JellyfinItem` → navega a la ficha del contenido.
-11. Usuario autorizado → ve el anuncio.
-12. Usuario no autorizado → no lo ve; `GET StartupAds/Media/{id}` → 403.
-13. Programación normal (horario diurno).
-14. Programación `22:00 → 02:00` a las 23:30 y a las 03:00.
-15. `EveryStartup`: recargar la página → reaparece.
-16. `OncePerSession`: navegar → no reaparece; pestaña nueva → sí.
-17. Cambiar de usuario sin recargar → se reevalúan los anuncios.
-18. Borrar un archivo del directorio y **Escanear** → su anuncio auto se elimina.
-19. Archivo inválido (ejecutable renombrado a `.png`) → no se lista ni se sirve.
-20. Reiniciar Jellyfin con el plugin instalado → arranca sin excepciones.
+   `ILibraryManager.GetItemById`, las policies `DefaultAuthorization` /
+   `RequiresElevation`, el claim `Jellyfin-UserId`, y que el host sigue respetando
+   `IStartupFilter` registrado por plugins.
+5. Comprobar que `IndexHtmlInjectionMiddleware` sigue interceptando `…/web/index.html`
+   (los tests de `InjectionMiddlewareTests` cubren el pipeline; validar en servidor real).
+6. `dotnet test` y prueba manual con la lista de *Prueba real en el servidor*.
 
 ---
 
@@ -402,7 +514,10 @@ Jellyfin Server (10.11.11 / .NET 9)
 ├── Api/StartupAdsController.cs   (anónimo / usuario / RequiresElevation)
 ├── Services/
 │   ├── MediaFileService.cs        validación de ruta, symlinks, firma, enumeración
-│   ├── AdvertisementManager.cs    CRUD · escaneo · Select() puro · schedule · tracking
-│   └── ScriptInjectionHostedService.cs   <script> en index.html (idempotente/reversible)
+│   └── AdvertisementManager.cs    CRUD · escaneo · Select() puro · schedule · tracking
+├── ClientInjection/
+│   ├── IndexHtmlInjector.cs              helper puro (inserta/idempotente)
+│   ├── IndexHtmlInjectionMiddleware.cs   reescribe la respuesta de index.html en memoria
+│   └── StartupAdsStartupFilter.cs        IStartupFilter que registra el middleware
 └── Web/  startup-ads.js · startup-ads.css   (servidos por el backend)
 ```

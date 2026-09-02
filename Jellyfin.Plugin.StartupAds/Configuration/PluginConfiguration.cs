@@ -98,6 +98,9 @@ namespace Jellyfin.Plugin.StartupAds.Configuration
             EnableStatistics = false;
             Language = "es";
 
+            InjectClientScript = true;
+            WebBasePath = "/web";
+
             Advertisements = new List<Advertisement>();
             Statistics = new List<AdStat>();
         }
@@ -164,6 +167,18 @@ namespace Jellyfin.Plugin.StartupAds.Configuration
         public bool EnableStatistics { get; set; }
 
         public string Language { get; set; }
+
+        /// <summary>
+        /// When true, the plugin injects its client &lt;script&gt; into jellyfin-web's index.html
+        /// response (in memory). Turn off to disable the overlay entirely without uninstalling.
+        /// </summary>
+        public bool InjectClientScript { get; set; }
+
+        /// <summary>
+        /// Base path under which jellyfin-web is served. Almost always "/web"; change only if the
+        /// server is configured with a custom web base path.
+        /// </summary>
+        public string WebBasePath { get; set; }
 
         /// <summary>All manually managed advertisements.</summary>
         public List<Advertisement> Advertisements { get; set; }

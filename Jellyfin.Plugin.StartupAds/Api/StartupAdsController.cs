@@ -215,6 +215,9 @@ namespace Jellyfin.Plugin.StartupAds.Api
             }
 
             incoming.Language = incoming.Language == "en" ? "en" : "es";
+            incoming.WebBasePath = string.IsNullOrWhiteSpace(incoming.WebBasePath)
+                ? "/web"
+                : "/" + incoming.WebBasePath.Trim().Trim('/');
 
             p.UpdateConfiguration(incoming);
             _logger.LogInformation("[StartupAds] Configuration saved by administrator.");

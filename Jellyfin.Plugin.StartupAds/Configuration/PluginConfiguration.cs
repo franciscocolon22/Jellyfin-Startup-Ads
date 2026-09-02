@@ -176,7 +176,9 @@ namespace Jellyfin.Plugin.StartupAds.Configuration
     {
         public Guid AdvertisementId { get; set; }
 
-        public long Shown { get; set; }
+        public long Impressions { get; set; }
+
+        public long Started { get; set; }
 
         public long Skipped { get; set; }
 

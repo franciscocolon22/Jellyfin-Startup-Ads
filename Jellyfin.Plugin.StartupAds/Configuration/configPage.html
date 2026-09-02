@@ -368,7 +368,11 @@
                     headers: authHeaders(),
                     body: body ? JSON.stringify(body) : undefined
                 }).then(function (r) {
-                    if (!r.ok) { throw new Error('HTTP ' + r.status); }
+                    if (!r.ok) {
+                        return r.text().then(function (txt) {
+                            throw new Error(txt || ('HTTP ' + r.status));
+                        });
+                    }
                     return r.status === 204 ? null : r.json();
                 });
             }
@@ -465,8 +469,9 @@
 
             function scan() {
                 req('POST', 'Admin/Scan').then(function (r) {
-                    Dashboard.alert('Anuncios importados: ' + r.imported);
-                    loadAds();
+                    Dashboard.alert('Escaneo completado. Importados: ' + (r.Imported || 0) +
+                        ' · Eliminados (archivo ausente): ' + (r.RemovedMissing || 0));
+                    loadFiles().then(loadAds);
                 });
             }
 
@@ -646,7 +651,7 @@
                 req('POST', path, body).then(function () {
                     g('saEditor').hidden = true;
                     loadAds();
-                }).catch(function () { Dashboard.alert('No se pudo guardar el anuncio.'); });
+                }).catch(function (e) { Dashboard.alert('No se pudo guardar el anuncio: ' + e.message); });
                 return false;
             }
 
@@ -669,32 +674,34 @@
                         var ad = cfg.Ads[0];
                         var ov = document.createElement('div');
                         ov.id = 'startup-ads-overlay';
-                        ov.className = 'sa-overlay sa-mode-modal sa-show';
+                        ov.className = 'startup-ads-overlay startup-ads-mode-modal startup-ads-show';
                         ov.style.setProperty('--sa-overlay-opacity', cfg.OverlayOpacity);
                         ov.style.setProperty('--sa-accent', cfg.AccentColor);
                         var card = document.createElement('div');
-                        card.className = 'sa-card';
+                        card.className = 'startup-ads-card';
                         card.style.maxWidth = cfg.MaxWidthPx + 'px';
                         if (ad.MediaUrl) {
                             var mw = document.createElement('div');
-                            mw.className = 'sa-media';
+                            mw.className = 'startup-ads-media';
                             var mUrl = api().getUrl(ad.MediaUrl, { api_key: api().accessToken() });
-                            var el = ad.Type === 'Video'
-                                ? Object.assign(document.createElement('video'), { src: mUrl, autoplay: true, muted: true, controls: true })
+                            var isVideo = ad.Type === 'Video' || /\.(mp4|webm|m4v|mov|ogv|ogg)(\?|$)/i.test(ad.MediaUrl);
+                            var el = isVideo
+                                ? Object.assign(document.createElement('video'), { src: mUrl, autoplay: true, muted: true, controls: true, playsInline: true })
                                 : Object.assign(document.createElement('img'), { src: mUrl });
-                            el.className = ad.Type === 'Video' ? 'sa-video' : 'sa-image';
+                            el.className = isVideo ? 'startup-ads-video' : 'startup-ads-image';
                             mw.appendChild(el);
                             card.appendChild(mw);
                         }
                         var b = document.createElement('div');
-                        b.className = 'sa-body';
-                        if (ad.Title) { var h = document.createElement('h2'); h.className = 'sa-title'; h.textContent = ad.Title; b.appendChild(h); }
-                        if (ad.Description) { var p = document.createElement('p'); p.className = 'sa-desc'; p.textContent = ad.Description; b.appendChild(p); }
+                        b.className = 'startup-ads-body';
+                        if (ad.Title) { var h = document.createElement('h2'); h.className = 'startup-ads-title'; h.textContent = ad.Title; b.appendChild(h); }
+                        if (ad.Description) { var p = document.createElement('p'); p.className = 'startup-ads-desc'; p.textContent = ad.Description; b.appendChild(p); }
                         card.appendChild(b);
                         var f = document.createElement('div');
-                        f.className = 'sa-footer';
+                        f.className = 'startup-ads-footer';
                         var close = document.createElement('button');
-                        close.className = 'sa-btn sa-skip sa-ready';
+                        close.type = 'button';
+                        close.className = 'startup-ads-btn startup-ads-skip startup-ads-ready';
                         close.textContent = 'Cerrar vista previa';
                         close.addEventListener('click', function () { ov.remove(); });
                         f.appendChild(close);

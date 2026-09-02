@@ -4,17 +4,17 @@
         "name": "Jellyfin Startup Ads",
         "description": "Muestra automáticamente anuncios multimedia (imagen, vídeo o texto) al abrir Jellyfin Web, administrables desde el Dashboard.",
         "overview": "Sistema de anuncios / presentaciones multimedia al iniciar Jellyfin.",
-        "owner": "Francisco Colon",
+        "owner": "franciscocolon22",
         "category": "General",
         "imageUrl": "",
         "versions": [
             {
-                "version": "1.0.0.0",
-                "changelog": "Versión inicial: overlay modal/fullscreen, imagen/vídeo/texto, cuenta regresiva, botón omitir configurable, programación, segmentación por usuario, escaneo automático de carpeta, estadísticas opcionales.",
-                "targetAbi": "10.10.0.0",
-                "sourceUrl": "https://example.com/jellyfin-startup-ads/jellyfin-startup-ads_1.0.0.0.zip",
-                "checksum": "REPLACE_WITH_MD5_OF_ZIP",
-                "timestamp": "2026-09-02T00:00:00Z"
+                "version": "1.1.0.0",
+                "changelog": "Migración a Jellyfin 10.11.11 / .NET 9 (targetAbi 10.11.0.0). Seguridad: canonicalización de symlinks y bloqueo de rutas UNC, validación de firma de archivo, rechazo explícito de nombres inválidos, endpoint Background con las mismas comprobaciones que Media, tracking con conjunto cerrado de eventos. Correcciones: horarios que cruzan medianoche, doble conteo de 'completed', detección de cambio de usuario, OncePerSession por usuario, limpieza total del DOM, sin polling infinito. CSS con espacio de nombres .startup-ads-*.",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/franciscocolon22/Jellyfin-Startup-Ads/releases/download/v1.1.0/jellyfin-startup-ads_1.1.0.0.zip",
+                "checksum": "c3c00c315f9c86599fd34f22424e497b",
+                "timestamp": "2026-09-02T17:30:00Z"
             }
         ]
     }

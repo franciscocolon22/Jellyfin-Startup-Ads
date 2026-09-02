@@ -80,6 +80,7 @@ namespace Jellyfin.Plugin.StartupAds.Configuration
 
         public int DurationSeconds { get; set; }
 
+        /// <summary>Higher number = higher priority (shown first). Range 0–1000.</summary>
         public int Priority { get; set; }
 
         public int Order { get; set; }
@@ -113,11 +114,15 @@ namespace Jellyfin.Plugin.StartupAds.Configuration
         /// <summary>0=Sunday .. 6=Saturday. Empty = every day.</summary>
         public List<int> DaysOfWeek { get; set; }
 
-        /// <summary>"HH:mm" local time, inclusive. Null = no restriction.</summary>
-        public string StartTime { get; set; }
+        /// <summary>
+        /// "HH:mm" local time, inclusive. Null/empty = no restriction. When
+        /// <see cref="EndTime"/> is earlier than <see cref="StartTime"/> the window
+        /// is treated as crossing midnight (e.g. 22:00 → 02:00).
+        /// </summary>
+        public string? StartTime { get; set; }
 
-        /// <summary>"HH:mm" local time, inclusive. Null = no restriction.</summary>
-        public string EndTime { get; set; }
+        /// <summary>"HH:mm" local time, inclusive. Null/empty = no restriction.</summary>
+        public string? EndTime { get; set; }
 
         // ---- Targeting ----
         /// <summary>Empty = all users. Otherwise only these Jellyfin user ids (string form).</summary>

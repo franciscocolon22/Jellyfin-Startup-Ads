@@ -1,0 +1,15 @@
+{
+    "category": "General",
+    "changelog": "v1.1.0 — Migración a Jellyfin 10.11.11 / .NET 9 (targetAbi 10.11.0.0). Seguridad: canonicalización de symlinks y bloqueo de UNC en MediaFileService, validación de firma de archivo, rechazo explícito de nombres inválidos, endpoint Background con las mismas comprobaciones que Media, tracking con conjunto cerrado de eventos y validación de anuncio/usuario. Correcciones: horarios que cruzan medianoche (22:00→02:00), doble conteo de 'completed' en vídeo, detección de cambio de usuario en el frontend, OncePerSession por usuario, limpieza total del DOM, sin polling infinito. CSS con espacio de nombres .startup-ads-*. Empaquetado real con checksum.",
+    "description": "Muestra automáticamente anuncios multimedia (imagen, vídeo o texto) al abrir Jellyfin Web, administrables desde el Dashboard: countdown, omitir, programación, segmentación por usuario, prioridades, aleatorio, botones, estadísticas y directorio externo configurable.",
+    "guid": "6d1a9b6e-6b3e-4f9a-9c2d-3a7f1e2c4b90",
+    "name": "Jellyfin Startup Ads",
+    "overview": "Anuncios multimedia al iniciar Jellyfin Web.",
+    "owner": "franciscocolon22",
+    "targetAbi": "10.11.0.0",
+    "framework": "net9.0",
+    "version": "1.1.0.0",
+    "timestamp": "2026-09-02T17:30:00Z",
+    "status": "Active",
+    "autoUpdate": true
+}

@@ -1,423 +1,408 @@
 # Jellyfin Startup Ads
 
-Sistema de **anuncios / presentaciones multimedia** que aparecen automáticamente
-al abrir **Jellyfin Web**. No es un banner: es un *overlay* modal / pantalla
-completa con imagen, vídeo o texto, cuenta regresiva, botón *Omitir* configurable,
-programación por fechas/horas, segmentación por usuario y panel de administración
-en el Dashboard.
+Plugin de producción para **Jellyfin Server 10.11.11** que permite **administrar y
+mostrar anuncios multimedia al iniciar Jellyfin Web**, usando contenido de un
+**directorio externo configurable**. Soporta imágenes, vídeos y texto, cuenta
+regresiva, botón *Omitir*, programación (fechas / horas / días, incluyendo franjas
+que cruzan medianoche), segmentación por usuario, prioridades, reproducción
+aleatoria, botones de acción, estadísticas opcionales y administración completa
+desde el Dashboard, con controles de seguridad adecuados.
+
+| | |
+|---|---|
+| Jellyfin | **10.11.11** (targetAbi `10.11.0.0`) |
+| .NET | **9.0** |
+| Versión del plugin | **1.1.0.0** |
+| Paquetes | `Jellyfin.Controller` / `Jellyfin.Model` 10.11.11 (`ExcludeAssets=runtime`) |
+| Licencia | MIT |
 
 ---
 
-## 1. Análisis técnico
+## Características
 
-### Versión objetivo y ABI
+- **Overlay** modal, pantalla completa o banner central; diseño oscuro, responsive,
+  animaciones suaves, `object-fit` configurable.
+- **Tipos de anuncio**: `Image`, `Video`, `Text`, `Multimedia`.
+- **Cuenta regresiva** + **Omitir** con dos modos: botón deshabilitado durante la
+  cuenta, o botón que aparece al terminar.
+- **Duración**: manual o *duración del vídeo* (`FromVideo`).
+- **Programación** por anuncio: `StartDate`, `EndDate`, `DaysOfWeek`, `StartTime`,
+  `EndTime`. Las franjas que cruzan medianoche (p. ej. `22:00 → 02:00`) se evalúan
+  correctamente.
+- **Segmentación**: `AllowedUserIds` (vacío = todos los usuarios).
+- **Orden**: `Priority` (número mayor = más prioridad), `Name`, `Manual`, `Random`.
+- **RandomPick** (un único anuncio al azar entre los elegibles) y
+  **MaxAdsPerStartup** (tope por apertura).
+- **Frecuencia**: `OncePerSession` (por usuario) o `EveryStartup`.
+- **Botones**: `None`, `ExternalUrl` (solo `http`/`https`), `JellyfinItem`
+  (validado contra la biblioteca), `CloseOnly`.
+- **Directorio externo** configurable + escaneo/importación + limpieza de anuncios
+  cuyos archivos se han borrado.
+- **Estadísticas** opcionales: `impression`, `started`, `completed`, `skipped`,
+  `clicked` (conjunto cerrado; nunca más de un `completed` por visualización).
+- **Vista previa** desde el Dashboard sin cerrar sesión.
 
-| Elemento | Valor | Motivo |
+---
+
+## Compatibilidad por cliente
+
+Solo los clientes que renderizan **Jellyfin Web** (una webview con `index.html`)
+ejecutan el script del plugin.
+
+| Cliente | Soporte | Nota |
 |---|---|---|
-| Jellyfin objetivo | **10.10.x** (probado con 10.10.7) | Rama estable actual con API de plugins madura. |
-| `targetAbi` | `10.10.0.0` | ABI mínima; el plugin sólo usa API estable presente también en 10.11. |
-| .NET | **net8.0** | Runtime de Jellyfin 10.10. Para 10.11 (preview, .NET 9) recompilar cambiando `TargetFramework` y el paquete `Jellyfin.Controller`. |
-| Paquetes | `Jellyfin.Controller`, `Jellyfin.Model` (10.10.7) | Paquetes NuGet oficiales para plugins. |
+| Jellyfin Web (Chrome, Edge, Firefox, Safari) | ✅ | Objetivo principal. |
+| Jellyfin Media Player (escritorio) | ✅ | Embebe Jellyfin Web. |
+| Apps Android / iOS | ⚠️ Parcial | Mayormente nativas; el overlay solo aparece donde se renderiza Jellyfin Web. Autoplay con sonido casi siempre bloqueado. |
+| Android TV / Fire TV / Roku / Kodi / Swiftfin | ❌ | UI nativa, no ejecutan JS de Jellyfin Web. |
 
-### Mecanismo de inyección en Jellyfin Web
+**Autoplay de vídeo**: se usa `autoplay + muted` (política de los navegadores); el
+sonido automático no es posible de forma fiable en ningún navegador.
 
-Jellyfin **no** expone en 10.10/10.11 una API oficial para inyectar JS/CSS en el
-cliente web. Las opciones reales son:
+---
 
-1. **Editar `web/index.html` añadiendo un `<script>`** — enfoque usado hoy por la
-   mayoría de plugins que tocan la UI (Jellyscrub, Home Screen Sections, Media Bar…).
-2. Plugin externo *File Transformation* (IAmParadox) como dependencia — más potente
-   pero añade una dependencia de terceros y no siempre está disponible en el catálogo.
-3. Servir un tema/branding CSS — sólo CSS, insuficiente aquí (necesitamos lógica).
+## Requisitos
 
-**Decisión:** opción 1. Un `IHostedService` (`ScriptInjectionHostedService`) añade
-al arrancar una sola línea antes de `</body>`:
+- Jellyfin Server **10.11.11** en Linux (Ubuntu Server) o Windows.
+- Para compilar: **.NET SDK 9.0**.
+- Una carpeta del servidor con imágenes/vídeos.
+
+---
+
+## Compilación
+
+```bash
+dotnet restore
+dotnet build -c Release
+dotnet test  -c Release
+```
+
+DLL resultante: `Jellyfin.Plugin.StartupAds/bin/Release/net9.0/Jellyfin.Plugin.StartupAds.dll`
+(el plugin **no** incluye ensamblados de Jellyfin: `ExcludeAssets=runtime`).
+
+### Empaquetado (ZIP instalable)
+
+```powershell
+pwsh ./build/package.ps1              # -> artifacts/jellyfin-startup-ads_1.1.0.0.zip
+```
+
+El ZIP contiene únicamente `Jellyfin.Plugin.StartupAds.dll` y `meta.json`
+(sin código fuente, tests, `.git`, README ni solución). El script imprime el
+**MD5** y el tamaño y los guarda en `artifacts/release-info.json`. La compilación
+es reproducible (`Deterministic` + timestamps fijos en el ZIP), por lo que el
+checksum es estable.
+
+Proceso de release:
+
+1. `pwsh ./build/package.ps1`
+2. Copiar el MD5 impreso a `manifest.json` (`checksum`).
+3. `git tag v1.1.0 && git push origin v1.1.0`
+4. Crear el *GitHub Release* `v1.1.0` y subir el ZIP como asset.
+5. Commit de `manifest.json`.
+
+---
+
+## Instalación en Jellyfin 10.11.11
+
+### Opción A — repositorio de plugins (recomendada)
+
+Dashboard → **Plugins** → **Repositorios** → añadir:
+
+```
+https://raw.githubusercontent.com/franciscocolon22/Jellyfin-Startup-Ads/main/manifest.json
+```
+
+Luego **Catálogo** → *Jellyfin Startup Ads* → **Instalar** → reiniciar Jellyfin.
+
+### Opción B — instalación manual del ZIP
+
+**Linux** (paquete `.deb`/`systemd`, ruta de datos por defecto):
+
+```bash
+sudo mkdir -p "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.1.0.0"
+sudo unzip artifacts/jellyfin-startup-ads_1.1.0.0.zip \
+     -d "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.1.0.0"
+sudo chown -R jellyfin:jellyfin "/var/lib/jellyfin/plugins/Jellyfin Startup Ads_1.1.0.0"
+sudo systemctl restart jellyfin
+```
+
+> La ruta exacta es `<DataDir>/plugins/`. `<DataDir>` es `/var/lib/jellyfin` en el
+> paquete oficial; en Docker suele ser `/config`. Compruébala en
+> Dashboard → **Panel de control → Rutas**.
+
+**Windows**: `%ProgramData%\Jellyfin\Server\plugins\Jellyfin Startup Ads_1.1.0.0\`
+(descomprimir el ZIP ahí) y reiniciar el servicio Jellyfin.
+
+### Verificación
+
+Tras reiniciar: Dashboard → **Plugins** → debe aparecer **Jellyfin Startup Ads**
+(estado *Active*) y abrir su **Configuración** sin errores. El log del servidor
+muestra `[StartupAds] Plugin starting; ensuring client script injection.` y, si
+Jellyfin puede escribir en `jellyfin-web`, `Client script injected into .../index.html`.
+
+### Carpeta de anuncios
+
+```bash
+sudo mkdir -p /var/lib/jellyfin/startup-ads
+sudo chown jellyfin:jellyfin /var/lib/jellyfin/startup-ads
+# copiar aquí: bienvenida.jpg, promocion.mp4, ...
+```
+
+Configuración del plugin → **Ruta de anuncios** → `/var/lib/jellyfin/startup-ads`
+→ **Validar ruta** → **Guardar** → **Escanear e importar archivos**.
+
+Ejemplos de ruta: Linux `/var/lib/jellyfin/startup-ads`, `/media/anuncios`;
+Windows `D:\Jellyfin\StartupAds`.
+
+---
+
+## Configuración
+
+### General
+`Enabled`, `ShowOnStartup`, `AdsDirectory`, `SourceMode` (Manual/Automatic/Mixed),
+`OrderMode`, `FrequencyMode`, `DisplayMode`, `DefaultDurationSeconds` (1–600),
+`MaxAdsPerStartup` (1–20), `RandomPick`.
+
+### Cuenta regresiva / Omitir
+`ShowCountdown`, `AllowSkip`, `SkipAfterSeconds` (0–600),
+`SkipButtonMode` (`DisabledUntilCountdown` | `AppearsAfterCountdown`),
+`ShowCloseButton`, `AllowCloseWithEscape`.
+
+### Vídeo
+`AutoplayVideo`, `MutedVideo`, `LoopVideo`, `ShowVideoControls`.
+
+### Apariencia
+`OverlayOpacity` (0–1), `MaxWidthPx` (200–6000), `MaxHeightPx` (200–6000),
+`BorderRadiusPx` (0–80), `ObjectFit` (`contain`/`cover`), `AccentColor` (`#RRGGBB`),
+`Language` (`es`/`en`).
+
+### Estadísticas
+`EnableStatistics` (opt-in).
+
+Todos los límites se validan **también en el backend**; el frontend nunca es la
+única barrera.
+
+---
+
+## Creación de anuncios
+
+**Crear anuncio** → nombre interno (obligatorio), tipo, título, descripción (texto
+plano; el HTML se muestra escapado), archivo (desplegable con los ficheros de la
+ruta), fondo opcional, `ObjectFit`, duración (manual / del vídeo), prioridad,
+orden, estado, `AllowSkip` + segundos, contador, botón (texto + acción + URL/ItemId),
+programación (fechas, horas `HH:mm`, días) y usuarios objetivo.
+
+Acciones sobre cada anuncio: **Editar**, **Activar/Desactivar**, **Duplicar**,
+**Vista previa**, **Eliminar**.
+
+---
+
+## Cuenta regresiva y botón Omitir
+
+- **DisabledUntilCountdown**: el botón se muestra como `Omitir en N` y se habilita
+  (`Omitir`) al alcanzar `SkipAfterSeconds`.
+- **AppearsAfterCountdown**: el botón está oculto hasta `SkipAfterSeconds`.
+- Si `AllowSkip = false`, el overlay se cierra solo al acabar la duración.
+- Al pulsar Omitir / X / ESC: limpieza inmediata — `video.pause()`, se libera el
+  `src`, se limpian `setInterval`/`setTimeout` y todos los listeners, se restaura
+  el foco y el nodo se elimina del DOM.
+
+---
+
+## Programación
+
+`StartDate`/`EndDate` (fuera de rango → no se muestra), `DaysOfWeek` (vacío =
+todos), `StartTime`/`EndTime` en hora local del servidor. Si `EndTime` es anterior
+a `StartTime` la franja se interpreta como **cruce de medianoche**: `22:00 → 02:00`
+coincide con 22:00, 23:59, 00:00, 01:59 y 02:00, pero no con 02:01. Cubierto por
+tests (`SchedulingTests.MidnightCrossingWindow`).
+
+---
+
+## Usuarios
+
+`AllowedUserIds` vacío = todos. Con usuarios seleccionados, solo ellos ven el
+anuncio **y** solo ellos pueden descargar su media (`GET StartupAds/Media/{id}`
+devuelve `403` a un usuario no segmentado). `OncePerSession` usa una clave por
+usuario (`startupAds:shown:{userId}` en `sessionStorage`): que el usuario A vea el
+anuncio no impide que el usuario B lo vea en la misma pestaña.
+
+---
+
+## Estadísticas
+
+Contadores agregados por anuncio en la configuración del plugin. Eventos válidos
+(conjunto cerrado, cualquier otro valor devuelve `400`): `impression`, `started`,
+`completed`, `skipped`, `clicked`. El frontend garantiza **un solo `completed` por
+visualización** aunque coincidan `timeout` y `video ended`.
+
+---
+
+## Seguridad
+
+- **Rutas de archivos** (`MediaFileService`):
+  - solo se aceptan **nombres de fichero planos** (sin `/`, `\`, `..`, `:`, sin
+    ruta absoluta, sin caracteres inválidos); la entrada inválida se **rechaza
+    explícitamente** (`400`), no se reescribe en silencio;
+  - el candidato debe ser hijo directo del directorio configurado;
+  - **symlinks**: se resuelve la ruta canónica (destino final) y se comprueba que
+    siga dentro del directorio real; un symlink que escapa se rechaza;
+  - el directorio configurado no puede ser una **ruta UNC** (`\\...`) ni un
+    **directorio del sistema** (`/etc`, `/proc`, `/sys`, `/dev`, `/root`, `/bin`,
+    `/lib`, `/run`, `C:\Windows`, `C:\Program Files`, …);
+  - **validación de contenido**: además de la extensión permitida, se comprueba la
+    **firma (magic bytes)** del archivo — un ejecutable/script renombrado a `.png`
+    se descarta.
+- **API**:
+  - anónimo: solo `ClientScript` / `ClientStyle` (estáticos, iguales para todos);
+  - usuario autenticado: `Config`, `Media`, `Media/Background`, `Track` — todos
+    aplican **las mismas** comprobaciones (anuncio existe, `Enabled`,
+    `ShowOnStartup`, usuario segmentado);
+  - administrador (`RequiresElevation`): todo lo de `Admin/` (CRUD, configuración,
+    escaneo, validación de ruta). Un usuario normal **no** puede modificar
+    anuncios, configuración, estadísticas ni rutas.
+- **Botones**: `ExternalUrl` solo admite `http://` / `https://` (se rechazan
+  `javascript:`, `data:`, `file:`, `vbscript:`, …); `JellyfinItem` valida que el
+  `ItemId` exista en la biblioteca.
+- **XSS**: el frontend nunca usa `innerHTML` con datos del servidor; título y
+  descripción se pintan con `textContent`.
+- **Cache**: `ClientScript`/`ClientStyle` → `public, max-age=3600`;
+  `Media`/`Background` → `private` (nunca se cachea contenido de un usuario para
+  otro).
+- No se registran tokens ni contraseñas en el log.
+
+---
+
+## Mecanismo de inyección en Jellyfin Web
+
+Jellyfin 10.11.11 sigue sirviendo `jellyfin-web` como ficheros estáticos desde
+`IServerApplicationPaths.WebPath` y **no** ofrece un hook oficial para añadir un
+script al cliente. Alternativas evaluadas:
+
+- **(A) Edición controlada de `index.html`** — *elegida*.
+- (B) Depender del plugin externo *File Transformation* — descartada: añade una
+  dependencia dura de terceros y un segundo punto de fallo.
+- (C) Branding/CSS — insuficiente: el CSS no ejecuta lógica.
+
+`ScriptInjectionHostedService` inserta **una sola línea** antes de `</body>`:
 
 ```html
 <script id="startup-ads-inject" src="StartupAds/ClientScript" defer></script>
 ```
 
-Propiedades del enfoque:
+- **idempotente**: nunca se inserta dos veces (marca `startup-ads-inject`);
+- **reversible**: se elimina en `StopAsync` (parada/desinstalación), y **solo**
+  esa línea (regex sobre la marca); nunca se restaura una copia antigua del
+  archivo;
+- **tolerante**: si `index.html` no existe, o es de solo lectura, o no hay
+  permisos de escritura, o se está escribiendo de forma concurrente → se registra
+  un aviso y **Jellyfin sigue funcionando**;
+- una **actualización de Jellyfin Web** regenera un `index.html` limpio; el
+  servicio vuelve a añadir la línea en el siguiente arranque.
 
-- **Idempotente**: si la marca ya está, no se vuelve a insertar.
-- **Reversible**: se elimina en `StopAsync` (parada/desinstalación del plugin) y,
-  además, cualquier actualización de Jellyfin Web regenera `index.html` limpio.
-- **Sin dependencias**: no requiere plugins de terceros.
-- **A prueba de fallos**: si no encuentra `index.html` (despliegues *headless*),
-  registra un aviso y no rompe nada.
+El JavaScript y el CSS los sirve el propio backend del plugin
+(`GET StartupAds/ClientScript` / `ClientStyle`), de modo que actualizar el plugin
+actualiza el frontend sin tocar ningún fichero del sistema.
 
-El `<script>` cargado es servido por el propio backend del plugin
-(`GET /StartupAds/ClientScript`) desde un recurso embebido, de modo que actualizar
-el plugin actualiza el frontend sin tocar ficheros del sistema.
-
-### Ciclo de vida de Jellyfin Web (arranque y SPA)
-
-Jellyfin Web es una SPA: tras la carga inicial navega cambiando *views* sin recargar.
-Por eso:
-
-- El bootstrap **no** depende de `window.onload` para la lógica de negocio: usa un
-  *poll* corto (400 ms, máx. ~48 s) hasta que `ApiClient` existe y hay sesión
-  autenticada. Es un único poll acotado, no un bucle permanente.
-- El script se ejecuta **una sola vez por carga completa de página** (guard
-  `window.__startupAdsLoaded`). Las navegaciones SPA no re‑ejecutan el `<script>`,
-  así que no hay riesgo de anuncios duplicados por navegación.
-- *"Una vez por sesión"* se implementa con `sessionStorage` por usuario
-  (`startupAds:shown:<userId>`). `sessionStorage` se borra al cerrar la pestaña →
-  volver a abrir Jellyfin muestra el anuncio de nuevo; navegar no.
-- Cambio de usuario sin recargar: el backend siempre filtra por el usuario del token
-  de la petición `GET /StartupAds/Config`, y la clave de sesión incluye el `userId`.
-
-### Seguridad
-
-- **Rutas**: todo acceso a disco pasa por `MediaFileService`. `ResolveFile` acepta
-  **sólo nombres de fichero planos** (sin `/`, `\`, `..`, sin ruta absoluta),
-  valida extensión y comprueba con `Path.GetFullPath` que el resultado cae *dentro*
-  del directorio configurado. `ValidateDirectory` rechaza directorios del sistema
-  (`/etc`, `/proc`, `C:\Windows`…).
-- **API**: endpoints de usuario con `Policy = "DefaultAuthorization"`; endpoints de
-  administración con `Policy = "RequiresElevation"`. El streaming de medios verifica
-  además que el usuario esté segmentado por el anuncio.
-- **XSS**: el frontend nunca usa `innerHTML` con datos del servidor; título y
-  descripción se pintan con `textContent`. El backend recorta longitudes y sólo
-  admite URLs `http(s)` para el botón.
-- **No se registran datos sensibles** en el log.
-
-### Rendimiento
-
-- Sin *polling* de 100 ms, sin `MutationObserver`, sin bucles infinitos.
-- El vídeo usa `preload="auto"` **sólo** cuando el overlay se va a mostrar; si no
-  hay anuncios, no se descarga nada.
-- Timers (`setInterval` de 250 ms para el contador, un `setTimeout` de fin) se
-  limpian por completo en el *cleanup*, junto con listeners y el elemento `<video>`
-  (`pause()`, `removeAttribute('src')`, `load()`).
+Si el proceso Jellyfin no tiene permiso de escritura sobre `jellyfin-web`
+(frecuente si `web/` es propiedad de `root`), el plugin **no** puede inyectar el
+script. Solución: `sudo chown -R jellyfin:jellyfin /usr/share/jellyfin/web` o
+servir el `web/` desde una ruta escribible por Jellyfin.
 
 ---
 
-## 2. Arquitectura propuesta
+## Frontend: ciclo de vida
 
-```
-Jellyfin Server
-   │
-   ├── Plugin backend (C# / .NET 8)
-   │     ├── Plugin.cs .......................... metadatos + página de config
-   │     ├── PluginConfiguration.cs ............. estado persistente (XML)
-   │     ├── PluginServiceRegistrator.cs ........ DI
-   │     ├── Services/
-   │     │     ├── MediaFileService.cs ......... validación de ruta + enumeración segura
-   │     │     ├── AdvertisementManager.cs ..... CRUD + escaneo + selección "activos ahora"
-   │     │     └── ScriptInjectionHostedService  inyecta <script> en index.html
-   │     └── Api/StartupAdsController.cs ........ endpoints REST
-   │
-   └── Jellyfin Web
-         └── startup-ads.js  (servido por el backend, inyectado en index.html)
-               ├── espera sesión autenticada
-               ├── GET /StartupAds/Config  → settings + lista de anuncios
-               ├── construye overlay (imagen | vídeo | texto | multimedia)
-               ├── cuenta regresiva + botón Omitir (2 modos)
-               ├── botón de acción (URL externa | item Jellyfin | cerrar)
-               └── cleanup total
-```
-
-### Endpoints
-
-| Método | Ruta | Auth | Descripción |
-|---|---|---|---|
-| GET | `/StartupAds/ClientScript` | anónimo | JS del frontend (recurso embebido). |
-| GET | `/StartupAds/ClientStyle` | anónimo | CSS del overlay. |
-| GET | `/StartupAds/Config` | usuario | Settings públicos + anuncios activos para el usuario. |
-| GET | `/StartupAds/Media/{adId}` | usuario | Stream del archivo del anuncio (con *range*). |
-| GET | `/StartupAds/Media/{adId}/Background` | usuario | Imagen de fondo opcional. |
-| POST | `/StartupAds/Track/{adId}/{kind}` | usuario | Estadística (`shown`/`skipped`/`completed`/`clicked`). |
-| GET/POST | `/StartupAds/Admin/Configuration` | admin | Leer / guardar configuración general. |
-| GET/POST | `/StartupAds/Admin/Advertisements` | admin | Listar / crear anuncios. |
-| POST/DELETE | `/StartupAds/Admin/Advertisements/{id}` | admin | Actualizar / eliminar. |
-| POST | `/StartupAds/Admin/Advertisements/{id}/Duplicate` | admin | Duplicar. |
-| POST | `/StartupAds/Admin/Advertisements/{id}/Enabled/{bool}` | admin | Activar / desactivar. |
-| POST | `/StartupAds/Admin/ValidatePath` | admin | Validar la ruta de anuncios. |
-| GET | `/StartupAds/Admin/Files` | admin | Archivos compatibles en la ruta. |
-| POST | `/StartupAds/Admin/Scan` | admin | Importar archivos como anuncios. |
-| GET | `/StartupAds/Admin/Preview?adId=` | admin | Datos para la vista previa. |
-
-### Almacenamiento
-
-Se usa el sistema de configuración de plugins de Jellyfin
-(`plugins/configurations/Jellyfin.Plugin.StartupAds.xml`). La lista de anuncios y
-las estadísticas viven **dentro** de `PluginConfiguration` (listas serializadas),
-de modo que todo persiste tras reiniciar y no hay ficheros de metadatos sueltos.
+- Un único bootstrap por carga completa de página (`window.__startupAdsLoaded`).
+- Espera acotada (poll de 500 ms, máx. ~20 s) hasta que hay un `ApiClient`
+  autenticado; **sin polling infinito**.
+- `evaluate()` se ejecuta también en cada `viewshow` (navegación SPA) — es barato
+  y solo hace una petición cuando el **usuario cambia**. Cubre: login después de
+  cargar la página, cambio de usuario, logout + nuevo login. Si el usuario cambia
+  mientras hay un anuncio en pantalla, ese anuncio se cierra.
+- `pagehide` cierra y limpia cualquier overlay.
 
 ---
 
-## 3. Compatibilidad por cliente
-
-La compatibilidad depende de si el cliente usa **Jellyfin Web** (una webview con
-`index.html`) o una UI nativa (no ejecuta nuestro `<script>`).
-
-| Cliente | Compatibilidad | Nota |
-|---|---|---|
-| Jellyfin Web (navegador) | ✅ Completo | Objetivo principal. |
-| Chrome / Firefox / Edge | ✅ Completo | |
-| Jellyfin Media Player (desktop) | ✅ Completo | Embebe Jellyfin Web; misma `index.html`. |
-| Android / iOS app (vistas WebView) | ⚠️ Parcial | Las apps móviles son mayormente nativas; el overlay aparece sólo donde se renderiza Jellyfin Web. Autoplay de vídeo con sonido casi siempre bloqueado. |
-| Android TV / Fire TV | ❌ No | UI nativa, no ejecuta JS de Jellyfin Web. |
-| Roku | ❌ No | App nativa BrightScript. |
-| Kodi (add-on) | ❌ No | Cliente nativo. |
-| Apple TV (Swiftfin) | ❌ No | Cliente nativo. |
-
-> No se promete compatibilidad donde técnicamente no existe. Para clientes nativos
-> la única vía sería que cada app implementara el sistema; queda fuera del alcance
-> de un plugin de servidor.
-
-**Autoplay de vídeo:** los navegadores exigen `muted` para autoplay sin
-interacción. El plugin arranca en `autoplay + muted` y reintenta *muted* si el
-navegador bloquea la reproducción. Que el vídeo tenga sonido automático **no** es
-posible de forma fiable en ningún navegador.
-
----
-
-## 4. Estructura del proyecto
-
-```
-anuncio/
-├── Jellyfin.Plugin.StartupAds.sln
-├── manifest.json                      # manifiesto de repositorio de plugins
-├── build.yaml                         # metadatos para jprm
-├── README.md  /  LICENSE  /  .gitignore
-│
-├── Jellyfin.Plugin.StartupAds/
-│   ├── Jellyfin.Plugin.StartupAds.csproj
-│   ├── Plugin.cs
-│   ├── PluginServiceRegistrator.cs
-│   ├── Configuration/
-│   │   ├── PluginConfiguration.cs
-│   │   ├── Advertisement.cs
-│   │   └── configPage.html            # página del Dashboard (embebida)
-│   ├── Api/
-│   │   ├── StartupAdsController.cs
-│   │   └── Dtos.cs
-│   ├── Services/
-│   │   ├── MediaFileService.cs
-│   │   ├── AdvertisementManager.cs
-│   │   └── ScriptInjectionHostedService.cs
-│   └── Web/
-│       ├── startup-ads.js             # frontend (embebido, servido por el backend)
-│       └── startup-ads.css
-│
-└── Jellyfin.Plugin.StartupAds.Tests/
-    ├── MediaFileServiceTests.cs        # path traversal, validación, enumeración
-    └── SchedulingTests.cs             # fechas, días, franjas horarias
-```
-
----
-
-## 5. Plan de implementación
-
-1. Backend: configuración + modelo + `MediaFileService` (seguridad de rutas). ✔
-2. `AdvertisementManager`: CRUD, escaneo, selección con orden/prioridad/aleatorio/
-   programación/segmentación/tope por inicio. ✔
-3. API REST (usuario + admin) con *policies* de autorización. ✔
-4. Inyección de `<script>` vía `IHostedService` idempotente y reversible. ✔
-5. Frontend: bootstrap, overlay, contador, *skip* (2 modos), acción de botón,
-   cleanup, i18n es/en, accesibilidad (ESC, foco, `aria`). ✔
-6. Página del Dashboard: config general + tabla de anuncios + editor + validar
-   ruta + escanear + vista previa. ✔
-7. Tests de las partes críticas. ✔
-8. Empaquetado (`manifest.json`, `build.yaml`) y documentación. ✔
-
----
-
-## 6. Requisitos
-
-- Jellyfin 10.10.x (Ubuntu Server u otro).
-- .NET SDK 8.0 para compilar.
-- Una carpeta en el servidor con imágenes/vídeos (p. ej. `/var/lib/jellyfin/ads`).
-
-## 7. Compilación
-
-```bash
-cd anuncio
-dotnet restore
-dotnet build -c Release
-# DLL resultante:
-#   Jellyfin.Plugin.StartupAds/bin/Release/net8.0/Jellyfin.Plugin.StartupAds.dll
-```
-
-Tests:
-
-```bash
-dotnet test -c Release
-```
-
-Empaquetado opcional con [`jprm`](https://github.com/oddstr13/jellyfin-plugin-repository-manager):
-
-```bash
-pip install jprm
-jprm plugin build .
-```
-
-## 8. Instalación
-
-### Manual (Ubuntu)
-
-```bash
-sudo mkdir -p /var/lib/jellyfin/plugins/Jellyfin.Plugin.StartupAds_1.0.0.0
-sudo cp Jellyfin.Plugin.StartupAds/bin/Release/net8.0/Jellyfin.Plugin.StartupAds.dll \
-        /var/lib/jellyfin/plugins/Jellyfin.Plugin.StartupAds_1.0.0.0/
-sudo chown -R jellyfin:jellyfin /var/lib/jellyfin/plugins/Jellyfin.Plugin.StartupAds_1.0.0.0
-sudo systemctl restart jellyfin
-```
-
-Windows: `C:\ProgramData\Jellyfin\Server\plugins\Jellyfin.Plugin.StartupAds_1.0.0.0\`
-(verifica la ruta real de datos de tu instalación).
-
-### Vía catálogo
-
-Sube el `.zip` y sirve `manifest.json` (actualiza `sourceUrl` y `checksum`).
-Dashboard → Plugins → Repositorios → añade la URL del `manifest.json`.
-
-### Carpeta de anuncios
-
-```bash
-sudo mkdir -p /var/lib/jellyfin/ads
-sudo chown jellyfin:jellyfin /var/lib/jellyfin/ads
-# copia aquí bienvenida.jpg, promocion.mp4, ...
-```
-
-Dashboard → Plugins → **Jellyfin Startup Ads** → *Ruta de anuncios* →
-`/var/lib/jellyfin/ads` → **Validar ruta** → **Guardar**.
-
-Tras instalar/actualizar el plugin **reinicia Jellyfin una vez** para que se
-inyecte el `<script>` en `index.html`.
-
-## 9. Configuración
-
-Panel del Dashboard:
-
-- **General**: activar, ruta, modo (Manual/Automático/Mixto), orden, frecuencia
-  (una vez por sesión / cada inicio), modo de visualización (Modal / Pantalla
-  completa / Banner central), duración por defecto, máx. anuncios por inicio,
-  anuncio aleatorio único.
-- **Contador / Omitir**: mostrar contador, permitir omitir, segundos para omitir,
-  comportamiento del botón (deshabilitado durante la cuenta / aparece al terminar),
-  botón X, cerrar con ESC.
-- **Vídeo**: autoplay, silenciado, bucle, controles.
-- **Apariencia**: opacidad del fondo, ancho/alto máximos, radio de bordes, color de
-  acento, idioma (es/en).
-- **Estadísticas**: opt‑in.
-
-## 10. Creación de anuncios
-
-Botón **Crear anuncio**. Campos: nombre interno, tipo (Imagen/Vídeo/Texto/
-Multimedia), título, descripción (texto plano), archivo (desplegable con los
-ficheros de la ruta), fondo opcional, ajuste (`contain`/`cover`), duración
-(manual o *del vídeo*), prioridad, orden, estado, permitir omitir + segundos,
-contador, botón (texto + acción: URL externa / item Jellyfin / cerrar),
-programación (fecha inicio/fin, horas, días de la semana) y usuarios objetivo.
-
-## 11. Anuncios de vídeo
-
-`<video autoplay muted playsinline>`. Si *Duración = del vídeo*, se espera
-`loadedmetadata` y el contador usa `video.duration`; `ended` cierra (o habilita
-*Omitir*). Si el vídeo falla, se cae a la duración manual sin romper el overlay.
-
-## 12. Cuenta regresiva y botón Omitir
-
-- **Modo A – deshabilitado durante la cuenta**: el botón se ve como
-  `Omitir en N` y se activa (`Omitir`) al llegar a `SkipAfterSeconds`.
-- **Modo B – aparece al terminar**: el botón está oculto hasta `SkipAfterSeconds`.
-- Si `AllowSkip = false`, el overlay se cierra solo al acabar la duración.
-- Al pulsar Omitir / X / ESC: `cleanup()` inmediato — `video.pause()`, se libera
-  el `src`, se limpian `setInterval`/`setTimeout` y todos los listeners, y el nodo
-  se elimina del DOM tras la animación de salida.
-
-## 13. Programación
-
-Cada anuncio: `StartDate`/`EndDate` (fuera de rango → no se muestra),
-`DaysOfWeek` (vacío = todos), `StartTime`/`EndTime` (`HH:mm`, hora local del
-servidor). Toda la lógica está en `AdvertisementManager.IsWithinSchedule` y
-cubierta por tests.
-
-## 14. Solución de problemas
+## Solución de problemas
 
 | Síntoma | Causa / solución |
 |---|---|
-| No aparece nada | ¿*Activar* on? ¿*Mostrar al iniciar* on? ¿Reiniciaste Jellyfin tras instalar? ¿La ruta valida OK? |
-| "La ruta configurada no existe" | Crea la carpeta y da permisos al usuario `jellyfin`. |
-| El anuncio no vuelve a salir | Frecuencia = *una vez por sesión*: cierra la pestaña o usa *cada inicio*. |
-| El vídeo no arranca solo | El navegador bloquea autoplay con sonido: mantén *silenciado* activado. |
-| Tras actualizar Jellyfin Web desaparece | Normal: la actualización regenera `index.html`. Reinicia Jellyfin y el plugin lo reinyecta. |
-| Sale en el móvil a medias | Las apps móviles son nativas salvo algunas vistas web; comportamiento esperado. |
-
-## 15. Limitaciones
-
-1. Clientes nativos (Android TV, Roku, Kodi, Swiftfin) **no** soportados.
-2. La inyección modifica `index.html`; una actualización de Jellyfin Web la borra
-   (se reinyecta al reiniciar). No es una API oficial y podría cambiar en el futuro.
-3. Autoplay de vídeo **con** sonido: no es posible de forma fiable.
-4. La navegación a un item de Jellyfin usa `Dashboard.navigate` / hash routing; si
-   el equipo de Jellyfin cambia el router, habría que ajustar `handleAction`.
-5. Las estadísticas son contadores agregados en el XML de configuración; no hay
-   panel de informes (sólo los números).
-
-## 16. Desarrollo y actualización a nuevas versiones de Jellyfin
-
-Cuando Jellyfin cambie de versión mayor:
-
-1. Actualiza `Jellyfin.Controller` / `Jellyfin.Model` al nuevo número.
-2. Ajusta `TargetFramework` si cambia el runtime (10.11 → `net9.0`).
-3. Actualiza `targetAbi` en `manifest.json` y `build.yaml`.
-4. Verifica que siguen existiendo: `IHasWebPages`, `IPluginServiceRegistrator`,
-   `IServerApplicationPaths.WebPath`, las *policies* `DefaultAuthorization` /
-   `RequiresElevation`, y el claim `Jellyfin-UserId`.
-5. Revisa `web/index.html` (nombre y ubicación) y el router del cliente
-   (`Dashboard.navigate`).
-6. `dotnet test` y prueba manual con la checklist de la sección 17.
-
-## 17. Pruebas manuales
-
-1. **Aparición automática**: instala, reinicia, configura ruta, crea un anuncio de
-   imagen, abre Jellyfin Web → debe salir el overlay sin tocar nada.
-2. **Imagen / Vídeo / Texto / Multimedia**: un anuncio de cada tipo.
-3. **Contador**: baja de N a 0; el botón cambia según el modo configurado.
-4. **Omitir / X / ESC**: cierran al instante; el vídeo deja de sonar; Jellyfin
-   queda usable.
-5. **Botón de acción**: URL externa abre pestaña nueva; item Jellyfin navega a la
-   ficha; "cerrar" cierra.
-6. **Varios anuncios**: crea 3, `MaxAdsPerStartup=2` → se muestran 2 en cola.
-7. **Aleatorio**: `RandomPick` on → uno distinto en cada carga.
-8. **Programación**: `EndDate` en el pasado → no aparece.
-9. **Segmentación**: asigna a un usuario → sólo ese usuario lo ve.
-10. **Una vez por sesión**: navega → no reaparece; recarga pestaña nueva → sí.
-11. **Sin ruta / ruta mala / sin anuncios**: Jellyfin funciona con normalidad.
-12. **Vista previa** desde el Dashboard sin cerrar sesión.
-13. `Admin/ValidatePath` con `/etc` → rechazado.
+| El plugin no aparece en el Dashboard | ZIP en la carpeta equivocada; comprobar `<DataDir>/plugins/` y reiniciar. |
+| No aparece ningún anuncio | ¿`Enabled` y `ShowOnStartup`? ¿Reiniciaste Jellyfin tras instalar? ¿La ruta valida OK? ¿Hay anuncios activos y en horario? |
+| Log: "No write permission on jellyfin-web/index.html" | Jellyfin no puede escribir en `web/`; ver sección de inyección. |
+| El anuncio no reaparece | `FrequencyMode = OncePerSession`: cierra la pestaña o usa `EveryStartup`. |
+| El vídeo no arranca solo | El navegador bloquea autoplay con sonido: mantén `MutedVideo`. |
+| Tras actualizar Jellyfin Web desaparece | Normal: reinicia Jellyfin y el plugin reinyecta la línea. |
+| "Nombre de archivo no válido" al guardar un anuncio | El nombre contenía `/`, `\`, `..` o `:`. Usa solo el nombre del fichero. |
+| Sale a medias en el móvil | Las apps móviles son nativas salvo algunas vistas web; comportamiento esperado. |
 
 ---
 
-## Documentación técnica resumida
+## Limitaciones
 
-1. **Cómo funciona**: al arrancar el servidor, `ScriptInjectionHostedService`
-   añade `<script src="StartupAds/ClientScript">` a `web/index.html`. Cada carga de
-   Jellyfin Web ejecuta ese script una vez.
-2. **Carga del frontend**: el `<script>` pide su código al backend (recurso
-   embebido) → así el plugin controla su propio frontend sin tocar el sistema.
-3. **Obtención de anuncios**: `GET /StartupAds/Config` → `AdvertisementManager
-   .GetActiveForUser(userId, now)` filtra por modo de fuente, `Enabled`,
-   `ShowOnStartup`, programación, segmentación y existencia del medio; ordena
-   (prioridad/nombre/manual/aleatorio); aplica `RandomPick` y `MaxAdsPerStartup`.
-4. **Validación de ruta**: `MediaFileService.ValidateDirectory` — absoluta, no
-   directorio de sistema, existe, legible, con ficheros compatibles.
-5. **Servido de medios**: `GET /StartupAds/Media/{adId}` → `ResolveFile` garantiza
-   que el fichero está dentro de la carpeta configurada → `PhysicalFile` con
-   soporte de *range*. El `<video>`/`<img>` añade `?api_key=` (token de sesión).
-6. **Contador**: `setInterval` de 250 ms calcula `remaining` y `canSkip` a partir
-   de `Date.now()`; un `setTimeout` marca el fin de la duración.
-7. **Omitir**: `cleanup(reason)` — idempotente — para timers, pausa/libera el
-   vídeo, quita listeners, anima la salida y elimina el nodo; luego procesa el
-   siguiente anuncio de la cola.
-8. **Sin duplicados**: guard `window.__startupAdsLoaded`; el `<script>` no se
-   re‑ejecuta en navegación SPA; `sessionStorage` para "una vez por sesión";
-   antes de crear el overlay se elimina cualquier `#startup-ads-overlay` previo.
-9. **Clientes compatibles**: sólo los que renderizan Jellyfin Web (sección 3);
-   se determina por si el cliente ejecuta `index.html`, no por suposición.
-10. **Limitaciones**: sección 15.
-11. **Actualización entre versiones**: sección 16.
+1. Clientes nativos (Android TV, Roku, Kodi, Swiftfin) **no** soportados.
+2. La inyección modifica `index.html`; requiere permiso de escritura sobre
+   `jellyfin-web` y se pierde (y se reinyecta) con cada actualización de Jellyfin
+   Web. No es una API oficial.
+3. Autoplay de vídeo **con** sonido: no es posible de forma fiable.
+4. La navegación a un item usa `Dashboard.navigate` / hash routing; si Jellyfin
+   cambia su router habrá que ajustar `handleAction` en `startup-ads.js`.
+5. Estadísticas: solo contadores agregados, sin panel de informes.
+6. **No verificado en este entorno**: instalación y arranque en un servidor
+   Jellyfin 10.11.11 real, la inyección sobre un `index.html` real y el
+   comportamiento en navegador. Sí verificado: compilación contra los ensamblados
+   reales de 10.11.11, `targetAbi` correcto, ausencia de ensamblados de Jellyfin
+   en la salida, y 61 tests en verde.
+
+---
+
+## Actualización a futuras versiones de Jellyfin
+
+1. Subir `Jellyfin.Controller` / `Jellyfin.Model` al nuevo número.
+2. Ajustar `TargetFramework` si cambia el runtime.
+3. Actualizar `targetAbi` en `manifest.json`, `build.yaml` y `build/meta.json`.
+4. Verificar que siguen existiendo: `IHasWebPages`, `IPluginServiceRegistrator`,
+   `IServerApplicationPaths.WebPath`, `ILibraryManager.GetItemById`, las policies
+   `DefaultAuthorization` / `RequiresElevation`, el claim `Jellyfin-UserId`.
+5. Revisar el nombre/ubicación de `web/index.html` y el router del cliente.
+6. `dotnet test` y prueba manual con la lista de abajo.
+
+---
+
+## Pruebas manuales
+
+1. Instalar, reiniciar, configurar ruta, crear un anuncio de imagen → abrir
+   Jellyfin Web: aparece el overlay automáticamente.
+2. Contador: `5 → 4 → 3 → 2 → 1 → Omitir`.
+3. Antes del tiempo: *Omitir* deshabilitado (u oculto según el modo).
+4. Después del tiempo: *Omitir* habilitado.
+5–8. Un anuncio de cada tipo: Imagen / Vídeo / Texto / Multimedia.
+9. Botón `ExternalUrl` → abre pestaña nueva.
+10. Botón `JellyfinItem` → navega a la ficha del contenido.
+11. Usuario autorizado → ve el anuncio.
+12. Usuario no autorizado → no lo ve; `GET StartupAds/Media/{id}` → 403.
+13. Programación normal (horario diurno).
+14. Programación `22:00 → 02:00` a las 23:30 y a las 03:00.
+15. `EveryStartup`: recargar la página → reaparece.
+16. `OncePerSession`: navegar → no reaparece; pestaña nueva → sí.
+17. Cambiar de usuario sin recargar → se reevalúan los anuncios.
+18. Borrar un archivo del directorio y **Escanear** → su anuncio auto se elimina.
+19. Archivo inválido (ejecutable renombrado a `.png`) → no se lista ni se sirve.
+20. Reiniciar Jellyfin con el plugin instalado → arranca sin excepciones.
+
+---
+
+## Arquitectura (resumen)
+
+```
+Jellyfin Server (10.11.11 / .NET 9)
+├── Plugin.cs / PluginServiceRegistrator.cs
+├── Configuration/  PluginConfiguration.cs · Advertisement.cs · configPage.html
+├── Api/StartupAdsController.cs   (anónimo / usuario / RequiresElevation)
+├── Services/
+│   ├── MediaFileService.cs        validación de ruta, symlinks, firma, enumeración
+│   ├── AdvertisementManager.cs    CRUD · escaneo · Select() puro · schedule · tracking
+│   └── ScriptInjectionHostedService.cs   <script> en index.html (idempotente/reversible)
+└── Web/  startup-ads.js · startup-ads.css   (servidos por el backend)
+```

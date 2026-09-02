@@ -1,43 +1,49 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net.Mime;
 using System.Reflection;
 using System.Security.Claims;
-using System.Threading.Tasks;
 using Jellyfin.Plugin.StartupAds.Configuration;
 using Jellyfin.Plugin.StartupAds.Services;
+using MediaBrowser.Controller.Library;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.StartupAds.Api
 {
     /// <summary>
-    /// All HTTP endpoints for the Startup Ads plugin. User endpoints require a valid Jellyfin
-    /// session; admin endpoints additionally require elevation.
+    /// HTTP endpoints for the Startup Ads plugin.
+    /// <list type="bullet">
+    ///   <item><b>Anonymous</b>: only <c>ClientScript</c> / <c>ClientStyle</c> (static, same for everyone).</item>
+    ///   <item><b>Authenticated user</b>: <c>Config</c>, <c>Media</c>, <c>Media/Background</c>, <c>Track</c>.</item>
+    ///   <item><b>Administrator (RequiresElevation)</b>: everything under <c>Admin/</c>.</item>
+    /// </list>
     /// </summary>
     [ApiController]
     [Route("StartupAds")]
     public class StartupAdsController : ControllerBase
     {
-        // Jellyfin injects the internal user id under this claim.
+        // Jellyfin puts the internal user id in this claim.
         private const string UserIdClaim = "Jellyfin-UserId";
 
         private readonly ILogger<StartupAdsController> _logger;
         private readonly AdvertisementManager _manager;
         private readonly MediaFileService _files;
+        private readonly ILibraryManager _libraryManager;
 
         public StartupAdsController(
             ILogger<StartupAdsController> logger,
             AdvertisementManager manager,
-            MediaFileService files)
+            MediaFileService files,
+            ILibraryManager libraryManager)
         {
             _logger = logger;
             _manager = manager;
             _files = files;
+            _libraryManager = libraryManager;
         }
 
         private static PluginConfiguration Config =>
@@ -51,7 +57,7 @@ namespace Jellyfin.Plugin.StartupAds.Api
         }
 
         // ---------------------------------------------------------------------
-        // Public assets (loaded by the injected <script> tag, no auth possible)
+        // Public assets
         // ---------------------------------------------------------------------
         [HttpGet("ClientScript")]
         [AllowAnonymous]
@@ -64,6 +70,7 @@ namespace Jellyfin.Plugin.StartupAds.Api
                 return NotFound();
             }
 
+            Response.Headers.CacheControl = "public, max-age=3600";
             return Content(js, "application/javascript");
         }
 
@@ -78,11 +85,12 @@ namespace Jellyfin.Plugin.StartupAds.Api
                 return NotFound();
             }
 
+            Response.Headers.CacheControl = "public, max-age=3600";
             return Content(css, "text/css");
         }
 
         // ---------------------------------------------------------------------
-        // User-facing API
+        // Authenticated user API
         // ---------------------------------------------------------------------
         [HttpGet("Config")]
         [Authorize(Policy = "DefaultAuthorization")]
@@ -92,28 +100,7 @@ namespace Jellyfin.Plugin.StartupAds.Api
             var userId = CurrentUserId();
             var now = DateTime.Now;
 
-            var dto = new ClientBootstrapDto
-            {
-                Enabled = cfg.Enabled && cfg.ShowOnStartup,
-                DisplayMode = cfg.DisplayMode.ToString(),
-                FrequencyMode = cfg.FrequencyMode.ToString(),
-                ShowCountdown = cfg.ShowCountdown,
-                DefaultDurationSeconds = cfg.DefaultDurationSeconds,
-                SkipButtonMode = cfg.SkipButtonMode.ToString(),
-                ShowCloseButton = cfg.ShowCloseButton,
-                AllowCloseWithEscape = cfg.AllowCloseWithEscape,
-                AutoplayVideo = cfg.AutoplayVideo,
-                MutedVideo = cfg.MutedVideo,
-                LoopVideo = cfg.LoopVideo,
-                ShowVideoControls = cfg.ShowVideoControls,
-                OverlayOpacity = cfg.OverlayOpacity,
-                MaxWidthPx = cfg.MaxWidthPx,
-                MaxHeightPx = cfg.MaxHeightPx,
-                BorderRadiusPx = cfg.BorderRadiusPx,
-                AccentColor = cfg.AccentColor,
-                Language = cfg.Language,
-                StatisticsEnabled = cfg.EnableStatistics
-            };
+            var dto = BuildBootstrap(cfg, previewMode: false);
 
             if (!dto.Enabled)
             {
@@ -125,6 +112,7 @@ namespace Jellyfin.Plugin.StartupAds.Api
                 dto.Ads.Add(ToClientDto(ad, cfg));
             }
 
+            Response.Headers.CacheControl = "private, no-store";
             return dto;
         }
 
@@ -132,29 +120,19 @@ namespace Jellyfin.Plugin.StartupAds.Api
         [Authorize(Policy = "DefaultAuthorization")]
         public ActionResult GetMedia([FromRoute] Guid adId)
         {
-            var cfg = Config;
-            var ad = _manager.Get(adId);
-            if (ad is null || !ad.Enabled)
+            var check = ResolveAccessibleAd(adId, out var ad);
+            if (check is not null)
             {
-                return NotFound();
+                return check;
             }
 
-            // Extra guard: the requesting user must actually be targeted by this ad.
-            if (ad.AllowedUserIds.Count > 0)
-            {
-                var uid = CurrentUserId();
-                if (!ad.AllowedUserIds.Any(x => Guid.TryParse(x, out var g) && g == uid))
-                {
-                    return Forbid();
-                }
-            }
-
-            var path = _files.ResolveFile(cfg.AdsDirectory, ad.MediaFile);
+            var path = _files.ResolveFile(Config.AdsDirectory, ad!.MediaFile);
             if (path is null)
             {
                 return NotFound();
             }
 
+            Response.Headers.CacheControl = "private, max-age=0, must-revalidate";
             return PhysicalFile(path, MediaFileService.ContentTypeFor(path), enableRangeProcessing: true);
         }
 
@@ -162,19 +140,24 @@ namespace Jellyfin.Plugin.StartupAds.Api
         [Authorize(Policy = "DefaultAuthorization")]
         public ActionResult GetBackground([FromRoute] Guid adId)
         {
-            var cfg = Config;
-            var ad = _manager.Get(adId);
-            if (ad is null || string.IsNullOrEmpty(ad.BackgroundFile))
+            var check = ResolveAccessibleAd(adId, out var ad);
+            if (check is not null)
+            {
+                return check;
+            }
+
+            if (string.IsNullOrEmpty(ad!.BackgroundFile))
             {
                 return NotFound();
             }
 
-            var path = _files.ResolveFile(cfg.AdsDirectory, ad.BackgroundFile);
+            var path = _files.ResolveFile(Config.AdsDirectory, ad.BackgroundFile);
             if (path is null)
             {
                 return NotFound();
             }
 
+            Response.Headers.CacheControl = "private, max-age=0, must-revalidate";
             return PhysicalFile(path, MediaFileService.ContentTypeFor(path), enableRangeProcessing: true);
         }
 
@@ -182,6 +165,17 @@ namespace Jellyfin.Plugin.StartupAds.Api
         [Authorize(Policy = "DefaultAuthorization")]
         public ActionResult Track([FromRoute] Guid adId, [FromRoute] string kind)
         {
+            if (!AdvertisementManager.IsValidTrackingEvent(kind))
+            {
+                return BadRequest($"Unknown tracking event '{kind}'.");
+            }
+
+            var check = ResolveAccessibleAd(adId, out _);
+            if (check is not null)
+            {
+                return check;
+            }
+
             _manager.Track(adId, kind);
             return NoContent();
         }
@@ -202,7 +196,7 @@ namespace Jellyfin.Plugin.StartupAds.Api
                 return StatusCode(500);
             }
 
-            // Preserve the ad list / stats which are managed through their own endpoints.
+            // These lists are managed through their own endpoints.
             incoming.Advertisements = p.Configuration.Advertisements;
             incoming.Statistics = p.Configuration.Statistics;
 
@@ -210,9 +204,20 @@ namespace Jellyfin.Plugin.StartupAds.Api
             incoming.SkipAfterSeconds = Math.Clamp(incoming.SkipAfterSeconds, 0, 600);
             incoming.MaxAdsPerStartup = Math.Clamp(incoming.MaxAdsPerStartup, 1, 20);
             incoming.OverlayOpacity = Math.Clamp(incoming.OverlayOpacity, 0d, 1d);
+            incoming.MaxWidthPx = Math.Clamp(incoming.MaxWidthPx, 200, 6000);
+            incoming.MaxHeightPx = Math.Clamp(incoming.MaxHeightPx, 200, 6000);
+            incoming.BorderRadiusPx = Math.Clamp(incoming.BorderRadiusPx, 0, 80);
+            incoming.ObjectFit = incoming.ObjectFit == "cover" ? "cover" : "contain";
+            if (string.IsNullOrWhiteSpace(incoming.AccentColor)
+                || !System.Text.RegularExpressions.Regex.IsMatch(incoming.AccentColor, "^#[0-9A-Fa-f]{3,8}$"))
+            {
+                incoming.AccentColor = "#00a4dc";
+            }
+
+            incoming.Language = incoming.Language == "en" ? "en" : "es";
 
             p.UpdateConfiguration(incoming);
-            _logger.LogInformation("[StartupAds] Configuration saved.");
+            _logger.LogInformation("[StartupAds] Configuration saved by administrator.");
             return NoContent();
         }
 
@@ -224,7 +229,11 @@ namespace Jellyfin.Plugin.StartupAds.Api
         [Authorize(Policy = "RequiresElevation")]
         public ActionResult<Advertisement> CreateAd([FromBody] Advertisement ad)
         {
-            Sanitize(ad);
+            if (!TryNormalize(ad, out var error))
+            {
+                return BadRequest(error);
+            }
+
             return Ok(_manager.Create(ad));
         }
 
@@ -233,7 +242,11 @@ namespace Jellyfin.Plugin.StartupAds.Api
         public ActionResult<Advertisement> UpdateAd([FromRoute] Guid id, [FromBody] Advertisement ad)
         {
             ad.Id = id;
-            Sanitize(ad);
+            if (!TryNormalize(ad, out var error))
+            {
+                return BadRequest(error);
+            }
+
             var updated = _manager.Update(ad);
             return updated is null ? NotFound() : Ok(updated);
         }
@@ -268,39 +281,14 @@ namespace Jellyfin.Plugin.StartupAds.Api
 
         [HttpPost("Admin/Scan")]
         [Authorize(Policy = "RequiresElevation")]
-        public ActionResult<object> Scan()
-        {
-            var count = _manager.ScanAndImport();
-            return Ok(new { imported = count });
-        }
+        public ActionResult<AdvertisementManager.ScanResult> Scan() => Ok(_manager.ScanAndImport());
 
         [HttpGet("Admin/Preview")]
         [Authorize(Policy = "RequiresElevation")]
         public ActionResult<ClientBootstrapDto> Preview([FromQuery] Guid? adId)
         {
             var cfg = Config;
-            var dto = new ClientBootstrapDto
-            {
-                Enabled = true,
-                DisplayMode = cfg.DisplayMode.ToString(),
-                FrequencyMode = "EveryStartup",
-                ShowCountdown = cfg.ShowCountdown,
-                DefaultDurationSeconds = cfg.DefaultDurationSeconds,
-                SkipButtonMode = cfg.SkipButtonMode.ToString(),
-                ShowCloseButton = true,
-                AllowCloseWithEscape = true,
-                AutoplayVideo = cfg.AutoplayVideo,
-                MutedVideo = cfg.MutedVideo,
-                LoopVideo = cfg.LoopVideo,
-                ShowVideoControls = cfg.ShowVideoControls,
-                OverlayOpacity = cfg.OverlayOpacity,
-                MaxWidthPx = cfg.MaxWidthPx,
-                MaxHeightPx = cfg.MaxHeightPx,
-                BorderRadiusPx = cfg.BorderRadiusPx,
-                AccentColor = cfg.AccentColor,
-                Language = cfg.Language,
-                StatisticsEnabled = false
-            };
+            var dto = BuildBootstrap(cfg, previewMode: true);
 
             var ads = adId is { } gid && _manager.Get(gid) is { } single
                 ? new List<Advertisement> { single }
@@ -317,9 +305,61 @@ namespace Jellyfin.Plugin.StartupAds.Api
         // ---------------------------------------------------------------------
         // Helpers
         // ---------------------------------------------------------------------
+
+        /// <summary>
+        /// Applies the full access policy for a media/track request: authenticated (enforced by the
+        /// attribute), ad exists, enabled, <c>ShowOnStartup</c>, and the current user is targeted.
+        /// Returns a non-null <see cref="ActionResult"/> to short-circuit, or null when access is granted.
+        /// </summary>
+        private ActionResult? ResolveAccessibleAd(Guid adId, out Advertisement? ad)
+        {
+            ad = _manager.Get(adId);
+            if (ad is null)
+            {
+                return NotFound();
+            }
+
+            if (!ad.Enabled || !ad.ShowOnStartup)
+            {
+                return NotFound();
+            }
+
+            if (!AdvertisementManager.IsUserTargeted(ad, CurrentUserId()))
+            {
+                _logger.LogWarning("[StartupAds] User {User} denied access to ad {Ad}.", CurrentUserId(), adId);
+                return Forbid();
+            }
+
+            return null;
+        }
+
+        private static ClientBootstrapDto BuildBootstrap(PluginConfiguration cfg, bool previewMode) => new()
+        {
+            Enabled = previewMode || (cfg.Enabled && cfg.ShowOnStartup),
+            DisplayMode = cfg.DisplayMode.ToString(),
+            FrequencyMode = previewMode ? "EveryStartup" : cfg.FrequencyMode.ToString(),
+            ShowCountdown = cfg.ShowCountdown,
+            DefaultDurationSeconds = cfg.DefaultDurationSeconds,
+            SkipButtonMode = cfg.SkipButtonMode.ToString(),
+            ShowCloseButton = previewMode || cfg.ShowCloseButton,
+            AllowCloseWithEscape = previewMode || cfg.AllowCloseWithEscape,
+            AutoplayVideo = cfg.AutoplayVideo,
+            MutedVideo = cfg.MutedVideo,
+            LoopVideo = cfg.LoopVideo,
+            ShowVideoControls = cfg.ShowVideoControls,
+            OverlayOpacity = cfg.OverlayOpacity,
+            MaxWidthPx = cfg.MaxWidthPx,
+            MaxHeightPx = cfg.MaxHeightPx,
+            BorderRadiusPx = cfg.BorderRadiusPx,
+            AccentColor = cfg.AccentColor,
+            Language = cfg.Language,
+            StatisticsEnabled = !previewMode && cfg.EnableStatistics
+        };
+
         private static ClientAdDto ToClientDto(Advertisement ad, PluginConfiguration cfg)
         {
-            var hasMedia = !string.IsNullOrEmpty(ad.MediaFile);
+            var hasMedia = !string.IsNullOrEmpty(ad.MediaFile)
+                           && ad.Type != AdvertisementType.Text;
             return new ClientAdDto
             {
                 Id = ad.Id.ToString(),
@@ -330,7 +370,7 @@ namespace Jellyfin.Plugin.StartupAds.Api
                 BackgroundUrl = string.IsNullOrEmpty(ad.BackgroundFile)
                     ? null
                     : $"StartupAds/Media/{ad.Id}/Background",
-                ObjectFit = string.IsNullOrWhiteSpace(ad.ObjectFit) ? cfg.ObjectFit : ad.ObjectFit,
+                ObjectFit = ad.ObjectFit == "cover" ? "cover" : "contain",
                 DurationSeconds = ad.DurationSeconds > 0 ? ad.DurationSeconds : cfg.DefaultDurationSeconds,
                 UseVideoDuration = ad.Type == AdvertisementType.Video && ad.DurationMode == AdDurationMode.FromVideo,
                 AllowSkip = ad.AllowSkip && cfg.AllowSkip,
@@ -338,43 +378,160 @@ namespace Jellyfin.Plugin.StartupAds.Api
                 ShowCountdown = ad.ShowCountdown && cfg.ShowCountdown,
                 ButtonText = ad.ButtonText ?? string.Empty,
                 ButtonAction = ad.ButtonAction.ToString(),
-                ButtonUrl = ad.ButtonUrl ?? string.Empty,
-                ButtonItemId = ad.ButtonItemId ?? string.Empty
+                ButtonUrl = ad.ButtonAction == AdButtonAction.ExternalUrl ? ad.ButtonUrl ?? string.Empty : string.Empty,
+                ButtonItemId = ad.ButtonAction == AdButtonAction.JellyfinItem ? ad.ButtonItemId ?? string.Empty : string.Empty
             };
         }
 
-        private void Sanitize(Advertisement ad)
+        /// <summary>
+        /// Validates and normalises an incoming advertisement. Bad input is rejected explicitly
+        /// (returns false with a message) rather than silently rewritten.
+        /// </summary>
+        private bool TryNormalize(Advertisement ad, out string error)
         {
+            error = string.Empty;
+
             ad.Name = Trim(ad.Name, 200);
             ad.Title = Trim(ad.Title, 300);
             ad.Description = Trim(ad.Description, 4000);
             ad.ButtonText = Trim(ad.ButtonText, 100);
-            ad.MediaFile = Path.GetFileName(ad.MediaFile ?? string.Empty);
-            ad.BackgroundFile = Path.GetFileName(ad.BackgroundFile ?? string.Empty);
-            ad.DurationSeconds = Math.Clamp(ad.DurationSeconds, 1, 600);
-            ad.SkipAfterSeconds = Math.Clamp(ad.SkipAfterSeconds, 0, 600);
-            ad.Priority = Math.Clamp(ad.Priority, 0, 1000);
+            ad.ObjectFit = ad.ObjectFit == "cover" ? "cover" : "contain";
 
-            if (ad.ButtonAction == AdButtonAction.ExternalUrl
-                && !string.IsNullOrWhiteSpace(ad.ButtonUrl)
-                && !ad.ButtonUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
-                && !ad.ButtonUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrWhiteSpace(ad.Name))
             {
-                _logger.LogWarning("[StartupAds] Button URL rejected (not http/https): {Url}", ad.ButtonUrl);
-                ad.ButtonUrl = string.Empty;
-                ad.ButtonAction = AdButtonAction.None;
+                error = "El nombre es obligatorio.";
+                return false;
+            }
+
+            // File names: reject anything that is not a safe bare name.
+            ad.MediaFile ??= string.Empty;
+            ad.BackgroundFile ??= string.Empty;
+
+            if (ad.MediaFile.Length > 0 && !_files.IsValidFileName(ad.MediaFile))
+            {
+                error = $"Nombre de archivo no válido: '{ad.MediaFile}'.";
+                return false;
+            }
+
+            if (ad.BackgroundFile.Length > 0 && !_files.IsValidFileName(ad.BackgroundFile))
+            {
+                error = $"Nombre de archivo de fondo no válido: '{ad.BackgroundFile}'.";
+                return false;
+            }
+
+            if (ad.Type is AdvertisementType.Image or AdvertisementType.Video && ad.MediaFile.Length == 0)
+            {
+                error = "Los anuncios de imagen o vídeo requieren un archivo.";
+                return false;
+            }
+
+            if (ad.DurationSeconds < 1 || ad.DurationSeconds > 600)
+            {
+                error = "La duración debe estar entre 1 y 600 segundos.";
+                return false;
+            }
+
+            if (ad.SkipAfterSeconds < 0 || ad.SkipAfterSeconds > 600)
+            {
+                error = "«Permitir omitir después de» debe estar entre 0 y 600 segundos.";
+                return false;
+            }
+
+            ad.Priority = Math.Clamp(ad.Priority, 0, 1000);
+            ad.Order = Math.Clamp(ad.Order, 0, 1_000_000);
+
+            if (!ValidTime(ad.StartTime) || !ValidTime(ad.EndTime))
+            {
+                error = "Las horas deben tener el formato HH:mm.";
+                return false;
+            }
+
+            ad.StartTime = EmptyToNull(ad.StartTime);
+            ad.EndTime = EmptyToNull(ad.EndTime);
+
+            if (ad.StartDate is { } sd && ad.EndDate is { } ed && ed.Date < sd.Date)
+            {
+                error = "La fecha de finalización es anterior a la de inicio.";
+                return false;
+            }
+
+            // Button action.
+            switch (ad.ButtonAction)
+            {
+                case AdButtonAction.ExternalUrl:
+                    if (!IsSafeExternalUrl(ad.ButtonUrl))
+                    {
+                        error = "La URL del botón debe empezar por http:// o https://.";
+                        return false;
+                    }
+
+                    ad.ButtonItemId = string.Empty;
+                    break;
+
+                case AdButtonAction.JellyfinItem:
+                    if (!Guid.TryParse(ad.ButtonItemId, out var itemGuid) || itemGuid == Guid.Empty)
+                    {
+                        error = "El identificador de contenido de Jellyfin no es válido.";
+                        return false;
+                    }
+
+                    if (_libraryManager.GetItemById(itemGuid) is null)
+                    {
+                        error = "No existe ningún contenido de Jellyfin con ese identificador.";
+                        return false;
+                    }
+
+                    ad.ButtonUrl = string.Empty;
+                    break;
+
+                default:
+                    ad.ButtonUrl = string.Empty;
+                    ad.ButtonItemId = string.Empty;
+                    break;
             }
 
             ad.AllowedUserIds = (ad.AllowedUserIds ?? new List<string>())
                 .Where(x => Guid.TryParse(x, out _))
+                .Select(x => Guid.Parse(x).ToString())
                 .Distinct()
                 .ToList();
 
             ad.DaysOfWeek = (ad.DaysOfWeek ?? new List<int>())
                 .Where(d => d is >= 0 and <= 6)
                 .Distinct()
+                .OrderBy(d => d)
                 .ToList();
+
+            return true;
         }
+
+        private static bool IsSafeExternalUrl(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                return false;
+            }
+
+            return Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri)
+                   && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+        }
+
+        private static bool ValidTime(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return true;
+            }
+
+            return TimeSpan.TryParseExact(
+                value.Trim(),
+                new[] { @"hh\:mm", @"h\:mm" },
+                CultureInfo.InvariantCulture,
+                out _);
+        }
+
+        private static string? EmptyToNull(string? value)
+            => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
         private static string Trim(string? value, int max)
         {

@@ -373,6 +373,13 @@ namespace Jellyfin.Plugin.StartupAds.Api
         {
             var hasMedia = !string.IsNullOrEmpty(ad.MediaFile)
                            && ad.Type != AdvertisementType.Text;
+            var mediaKind = hasMedia
+                ? MediaFileService.TypeFor(ad.MediaFile) switch
+                {
+                    AdvertisementType.Video => "video",
+                    _ => "image"
+                }
+                : null;
             return new ClientAdDto
             {
                 Id = ad.Id.ToString(),
@@ -380,16 +387,17 @@ namespace Jellyfin.Plugin.StartupAds.Api
                 Title = ad.Title ?? string.Empty,
                 Description = ad.Description ?? string.Empty,
                 MediaUrl = hasMedia ? $"StartupAds/Media/{ad.Id}" : null,
+                MediaKind = mediaKind,
                 BackgroundUrl = string.IsNullOrEmpty(ad.BackgroundFile)
                     ? null
                     : $"StartupAds/Media/{ad.Id}/Background",
                 ObjectFit = ad.ObjectFit == "cover" ? "cover" : "contain",
-                // The ad's countdown IS "SkipAfterSeconds"; there is no separate duration field.
-                DurationSeconds = ad.SkipAfterSeconds > 0 ? ad.SkipAfterSeconds : cfg.DefaultDurationSeconds,
-                UseVideoDuration = (ad.Type == AdvertisementType.Video || ad.Type == AdvertisementType.Multimedia)
-                                   && ad.DurationMode == AdDurationMode.FromVideo,
+                // The countdown is a single global value ("Duración del anuncio"), identical for
+                // every ad type. There is no per-ad duration and no "use the video length".
+                DurationSeconds = cfg.DefaultDurationSeconds,
+                UseVideoDuration = false,
                 AllowSkip = ad.AllowSkip && cfg.AllowSkip,
-                SkipAfterSeconds = ad.SkipAfterSeconds > 0 ? ad.SkipAfterSeconds : cfg.DefaultDurationSeconds,
+                SkipAfterSeconds = cfg.DefaultDurationSeconds,
                 ShowCountdown = ad.ShowCountdown && cfg.ShowCountdown,
                 ButtonText = ad.ButtonText ?? string.Empty,
                 ButtonAction = ad.ButtonAction.ToString(),

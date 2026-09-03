@@ -60,8 +60,11 @@ namespace Jellyfin.Plugin.StartupAds.Api
 
         public string Description { get; set; } = string.Empty;
 
-        /// <summary>Relative media URL (no auth token). The client appends api_key.</summary>
+        /// <summary>Relative media URL (no auth token). The client appends ApiKey.</summary>
         public string? MediaUrl { get; set; }
+
+        /// <summary>"image" or "video" — the real kind of <see cref="MediaUrl"/>, resolved from the file.</summary>
+        public string? MediaKind { get; set; }
 
         public string? BackgroundUrl { get; set; }
 

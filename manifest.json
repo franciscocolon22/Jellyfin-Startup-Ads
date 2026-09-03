@@ -9,6 +9,14 @@
         "imageUrl": "",
         "versions": [
             {
+                "version": "1.3.4.0",
+                "changelog": "Tiempo simplificado: UN solo número global «Duración del anuncio (segundos)» es la cuenta regresiva de todos los anuncios (imagen/vídeo/texto). Se quita «Duración del vídeo» y los tiempos por anuncio. «Modo de anuncios»: opciones renombradas + resumen en vivo + columna Origen (el filtro backend es correcto). Incluye v1.3.3/v1.3.2/v1.3.1/v1.3.0/v1.2.0/v1.1.0.",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/franciscocolon22/Jellyfin-Startup-Ads/releases/download/v1.3.4/jellyfin-startup-ads_1.3.4.0.zip",
+                "checksum": "d9bea84ffd35ddf7a7301ad9579840b3",
+                "timestamp": "2026-09-03T19:00:00Z"
+            },
+            {
                 "version": "1.3.3.0",
                 "changelog": "«Escanear e importar» ya no devuelve siempre 0/0 (el JS no parseaba la respuesta de los POST). Se elimina «Duración (segundos)» del editor: la cuenta regresiva ES «Permitir omitir después de». «Escanear» re-clasifica anuncios de origen automático de versiones antiguas. Incluye v1.3.2/v1.3.1/v1.3.0/v1.2.0/v1.1.0.",
                 "targetAbi": "10.11.0.0",

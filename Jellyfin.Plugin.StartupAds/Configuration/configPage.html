@@ -54,12 +54,13 @@
                 <div id="saPathResult" class="fieldDescription" style="margin-top:8px;"></div>
 
                 <div class="selectContainer">
-                    <label class="selectLabel" for="saSourceMode">Modo de anuncios</label>
+                    <label class="selectLabel" for="saSourceMode">Qué anuncios mostrar</label>
                     <select is="emby-select" id="saSourceMode">
-                        <option value="Manual">Manual</option>
-                        <option value="Automatic">Automático</option>
-                        <option value="Mixed">Mixto</option>
+                        <option value="Mixed">Todos (recomendado)</option>
+                        <option value="Manual">Solo los que creé a mano (botón «Crear anuncio»)</option>
+                        <option value="Automatic">Solo los de «Escanear e importar archivos»</option>
                     </select>
+                    <div class="fieldDescription" id="saSourceCount"></div>
                 </div>
                 <div class="selectContainer">
                     <label class="selectLabel" for="saOrderMode">Orden</label>
@@ -87,9 +88,13 @@
                 </div>
 
                 <div class="inputContainer">
-                    <label class="inputLabel inputLabelUnfocused" for="saDefaultDuration">Tiempo predeterminado del anuncio (segundos)</label>
+                    <label class="inputLabel inputLabelUnfocused" for="saDefaultDuration">Duración del anuncio (segundos)</label>
                     <input is="emby-input" type="number" id="saDefaultDuration" min="1" max="600" />
-                    <div class="fieldDescription">Valor con el que se rellena «Permitir omitir después de» al crear un anuncio nuevo.</div>
+                    <div class="fieldDescription">
+                        <b>La cuenta regresiva de TODOS los anuncios</b> (imagen, vídeo y texto). Baja de este
+                        número a 0; al llegar a 0, si «Permitir omitir» está activo aparece el botón
+                        <b>Omitir</b>, y si no, el anuncio se cierra. Un vídeo más largo se corta aquí.
+                    </div>
                 </div>
                 <div class="inputContainer">
                     <label class="inputLabel inputLabelUnfocused" for="saMaxAds">Máximo de anuncios por inicio</label>
@@ -106,11 +111,7 @@
                 </div>
                 <div class="checkboxContainer">
                     <label><input is="emby-checkbox" type="checkbox" id="saAllowSkip" />
-                        <span>Permitir omitir</span></label>
-                </div>
-                <div class="inputContainer">
-                    <label class="inputLabel inputLabelUnfocused" for="saSkipAfter">Permitir omitir después de (segundos)</label>
-                    <input is="emby-input" type="number" id="saSkipAfter" min="0" max="600" />
+                        <span>Permitir omitir (mostrar el botón «Omitir» al terminar la cuenta)</span></label>
                 </div>
                 <div class="selectContainer">
                     <label class="selectLabel" for="saSkipButtonMode">Comportamiento del botón Omitir</label>
@@ -270,20 +271,9 @@
 
                         <div class="saSection">
                             <h3>Configuración</h3>
-                            <div class="selectContainer" id="rowDurationMode">
-                                <label class="selectLabel" for="adDurationMode">Cuenta regresiva</label>
-                                <select is="emby-select" id="adDurationMode">
-                                    <option value="Manual">Fija (los segundos indicados abajo)</option>
-                                    <option value="FromVideo">La duración del vídeo</option>
-                                </select>
-                            </div>
-                            <div class="inputContainer">
-                                <label class="inputLabel inputLabelUnfocused" for="adSkipAfter">Permitir omitir después de (segundos)</label>
-                                <input is="emby-input" type="number" id="adSkipAfter" min="1" max="600" />
-                                <div class="fieldDescription">
-                                    Es la cuenta regresiva del anuncio. Si «Permitir omitir» está activo, el botón
-                                    <b>Omitir</b> se habilita al llegar a 0; si no, el anuncio se cierra solo.
-                                </div>
+                            <div class="fieldDescription">
+                                La <b>duración</b> (cuenta regresiva) es común a todos los anuncios y se ajusta
+                                en «Configuración general → Duración del anuncio (segundos)».
                             </div>
                             <div class="inputContainer">
                                 <label class="inputLabel inputLabelUnfocused" for="adPriority">Prioridad (0 - 1000, mayor = primero)</label>
@@ -532,7 +522,6 @@
                     setChk('saRandomPick', c.RandomPick);
                     setChk('saShowCountdown', c.ShowCountdown);
                     setChk('saAllowSkip', c.AllowSkip);
-                    setVal('saSkipAfter', c.SkipAfterSeconds);
                     setVal('saSkipButtonMode', c.SkipButtonMode);
                     setChk('saShowCloseButton', c.ShowCloseButton);
                     setChk('saAllowEscape', c.AllowCloseWithEscape);
@@ -561,7 +550,7 @@
                     FrequencyMode: val('saFrequencyMode'), DisplayMode: val('saDisplayMode'),
                     DefaultDurationSeconds: num('saDefaultDuration'), MaxAdsPerStartup: num('saMaxAds'),
                     RandomPick: chk('saRandomPick'), ShowCountdown: chk('saShowCountdown'),
-                    AllowSkip: chk('saAllowSkip'), SkipAfterSeconds: num('saSkipAfter'),
+                    AllowSkip: chk('saAllowSkip'), SkipAfterSeconds: num('saDefaultDuration'),
                     SkipButtonMode: val('saSkipButtonMode'), ShowCloseButton: chk('saShowCloseButton'),
                     AllowCloseWithEscape: chk('saAllowEscape'),
                     AutoplayVideo: chk('saAutoplay'), MutedVideo: chk('saMuted'),
@@ -594,7 +583,7 @@
                 req('POST', 'Admin/Scan').then(function (r) {
                     Dashboard.hideLoadingMsg();
                     Dashboard.alert('Escaneo: ' + (r.Imported || 0) + ' importados, ' +
-                        (r.RemovedMissing || 0) + ' eliminados, ' + (r.Retagged || 0) + ' re-clasificados.');
+                        (r.RemovedMissing || 0) + ' eliminados.');
                     loadFiles().then(loadAds);
                 }).catch(function (err) {
                     Dashboard.hideLoadingMsg();
@@ -628,6 +617,14 @@
                     var tbody = q(state.view, 'saAdsBody');
                     tbody.textContent = '';
                     q(state.view, 'saNoAds').hidden = ads.length > 0;
+
+                    var auto = ads.filter(function (a) { return a.AutoGenerated; }).length;
+                    var manual = ads.length - auto;
+                    var sc = q(state.view, 'saSourceCount');
+                    if (sc) {
+                        sc.textContent = 'Ahora mismo: ' + manual + ' creados a mano, ' + auto +
+                            ' de «Escanear». La columna «Origen» de la tabla lo indica en cada uno.';
+                    }
                     ads.forEach(function (ad) {
                         var tr = document.createElement('tr');
                         [ad.Name, ad.Type, ad.AutoGenerated ? 'Automático' : 'Manual',
@@ -733,12 +730,7 @@
                 var current = preferMediaFile != null ? preferMediaFile : val('adMediaFile');
                 fillFileSelect('adMediaFile', current,
                     isImage ? 'Image' : (isVideo ? 'Video' : null));
-
-                // Duración: la opción "del vídeo" solo tiene sentido para vídeo/multimedia
-                show('rowDurationMode', canVideoDuration);
-                if (!canVideoDuration) { setVal('adDurationMode', 'Manual'); }
-
-                // Contador / omitir aplican a todos los tipos (no se ocultan).
+                void canVideoDuration;
             }
 
             function showError(msg) {
@@ -758,15 +750,11 @@
                 setVal('adDescription', ad.Description || '');
                 fillFileSelect('adBackgroundFile', ad.BackgroundFile || '');
                 setVal('adObjectFit', ad.ObjectFit || 'contain');
-                setVal('adDurationMode', ad.DurationMode || 'Manual');
                 setVal('adPriority', ad.Priority == null ? 5 : ad.Priority);
                 setVal('adOrder', ad.Order || 0);
                 setChk('adEnabled', ad.Id ? ad.Enabled : true);
                 setChk('adShowOnStartup', ad.Id ? ad.ShowOnStartup : true);
                 setChk('adAllowSkip', ad.Id ? ad.AllowSkip : true);
-                // New ads default their countdown to the global "tiempo predeterminado".
-                setVal('adSkipAfter',
-                    ad.Id ? (ad.SkipAfterSeconds || 5) : (state.defaultDuration || 10));
                 setChk('adShowCountdown', ad.Id ? ad.ShowCountdown : true);
                 setVal('adButtonText', ad.ButtonText || '');
                 setVal('adButtonAction', ad.ButtonAction || 'None');
@@ -821,8 +809,6 @@
                 if ((type === 'Image' || type === 'Video') && !val('adMediaFile')) {
                     return 'Los anuncios de imagen o vídeo requieren un archivo.';
                 }
-                var skip = num('adSkipAfter');
-                if (skip < 1 || skip > 600) { return '«Permitir omitir después de» debe estar entre 1 y 600 segundos.'; }
                 var prio = num('adPriority');
                 if (prio < 0 || prio > 1000) { return 'La prioridad debe estar entre 0 y 1000.'; }
                 var action = val('adButtonAction');
@@ -853,16 +839,16 @@
                     MediaFile: val('adMediaFile'),
                     BackgroundFile: val('adBackgroundFile'),
                     ObjectFit: val('adObjectFit'),
-                    DurationMode: val('adDurationMode'),
-                    // "Duración (segundos)" se eliminó del formulario: la cuenta regresiva
-                    // del anuncio ES «Permitir omitir después de».
-                    DurationSeconds: Math.max(1, num('adSkipAfter')),
+                    // La duración/cuenta regresiva es global ("Duración del anuncio"); estos
+                    // campos se mandan solo por compatibilidad del modelo, no se usan.
+                    DurationMode: 'Manual',
+                    DurationSeconds: state.defaultDuration || 10,
                     Priority: num('adPriority'),
                     Order: num('adOrder'),
                     Enabled: chk('adEnabled'),
                     ShowOnStartup: chk('adShowOnStartup'),
                     AllowSkip: chk('adAllowSkip'),
-                    SkipAfterSeconds: num('adSkipAfter'),
+                    SkipAfterSeconds: state.defaultDuration || 10,
                     ShowCountdown: chk('adShowCountdown'),
                     ButtonText: val('adButtonText'),
                     ButtonAction: val('adButtonAction'),
@@ -918,7 +904,8 @@
                             var mw = document.createElement('div');
                             mw.className = 'startup-ads-media';
                             var mUrl = apiClient().getUrl(ad.MediaUrl, { ApiKey: apiClient().accessToken() });
-                            var isVideo = ad.Type === 'Video' || /\.(mp4|webm|m4v|mov|ogv|ogg)(\?|$)/i.test(ad.MediaUrl);
+                            var isVideo = ad.MediaKind === 'video'
+                                || (ad.MediaKind !== 'image' && ad.Type === 'Video');
                             var el = isVideo
                                 ? Object.assign(document.createElement('video'),
                                     { src: mUrl, autoplay: true, muted: true, controls: true, playsInline: true })

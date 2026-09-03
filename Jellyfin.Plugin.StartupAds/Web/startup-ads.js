@@ -377,13 +377,13 @@
         trackOnce('impression');
 
         /* ---- countdown / skip state machine ----
-           There is ONE per-ad time: SkipAfterSeconds. The countdown shows it (N -> 0).
-           At 0: if skipping is allowed the "Omitir" button turns active and the overlay
-           waits for the user; if not, the overlay closes. (For a video set to "duración
-           del vídeo", the countdown is the video length instead.) */
+           ONE global time ("Duración del anuncio", cfg.DefaultDurationSeconds) is the countdown
+           for EVERY ad type. It shows N -> 0. At 0: if skipping is allowed the "Omitir" button
+           turns active and the overlay waits for the user; if not, the overlay closes.
+           A video longer than N is simply cut off; a shorter video ends and the ad waits. */
         var allowSkip = !!ad.AllowSkip;
-        var skipAfter = Math.max(1, ad.SkipAfterSeconds || cfg.DefaultDurationSeconds || 10);
-        var totalDuration = skipAfter;
+        var totalDuration = Math.max(1, ad.DurationSeconds || cfg.DefaultDurationSeconds || 10);
+        var skipAfter = totalDuration;   // skip enables exactly when the countdown reaches 0
         var startTs = Date.now();
         var tickTimer = null;
         var endTimer = null;
@@ -407,10 +407,10 @@
 
         function renderFooter() {
             var elapsed = (Date.now() - startTs) / 1000;
-            // The countdown reflects the AD DURATION (10 -> 0), not "seconds until skip".
+            // The countdown reflects the AD DURATION (10 -> 0).
             var remaining = Math.max(0, Math.ceil(totalDuration - elapsed));
             var showCountdown = ad.ShowCountdown && cfg.ShowCountdown;
-            var canSkip = allowSkip && elapsed >= skipAfter;
+            var canSkip = allowSkip && (remaining <= 0 || elapsed >= skipAfter);
 
             skipBtn.classList.remove(NS + '-ready');
 
@@ -472,28 +472,14 @@
             }
         }
 
-        if (videoEl && ad.UseVideoDuration) {
-            var started = false;
-            var begin = function () { if (!started) { started = true; beginTimers(); } };
-            videoEl.addEventListener('loadedmetadata', function () {
-                if (isFinite(videoEl.duration) && videoEl.duration > 0) {
-                    totalDuration = Math.ceil(videoEl.duration);
-                }
-                begin();
-            });
+        beginTimers();
+
+        if (videoEl) {
+            // If the clip ends before the countdown, close (or keep waiting for Omitir).
             videoEl.addEventListener('ended', function () {
                 if (!cfg.LoopVideo) { finishByDuration('video-ended'); }
             });
-            videoEl.addEventListener('error', function () {
-                log('video failed to load; using manual duration');
-                begin();
-            });
-            setTimeout(begin, 4000); // safety net if metadata never arrives
-        } else {
-            beginTimers();
-        }
-
-        if (videoEl) {
+            videoEl.addEventListener('error', function () { log('video failed to load'); });
             videoEl.addEventListener('playing', function () { trackOnce('started'); }, { once: true });
             if (cfg.AutoplayVideo !== false) {
                 var pr = videoEl.play();
@@ -548,9 +534,10 @@
     }
 
     function looksVideo(ad) {
+        if (ad.MediaKind === 'video') { return true; }
+        if (ad.MediaKind === 'image') { return false; }
         if (ad.Type === 'Video') { return true; }
-        if (ad.Type !== 'Multimedia' || !ad.MediaUrl) { return false; }
-        return /\.(mp4|webm|m4v|mov|ogv|ogg)(\?|$)/i.test(ad.MediaUrl) || ad.UseVideoDuration === true;
+        return /\.(mp4|webm|m4v|mov|ogv|ogg)(\?|$)/i.test(ad.MediaUrl || '');
     }
 
     /* ----------------------------------------------------------------

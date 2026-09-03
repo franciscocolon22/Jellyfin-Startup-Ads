@@ -1,12 +1,17 @@
 # Jellyfin Startup Ads — Guía de configuración y funcionamiento
 
-> Aplica a la versión **1.4.0** del plugin · Jellyfin **10.11.11** · .NET **9**
+> Aplica a la versión **1.4.1** del plugin · Jellyfin **10.11.11** · .NET **9**
 
-> **Novedad v1.4.0:** el plugin ahora tiene **dos sistemas de anuncios independientes**.
-> Este documento describe el sistema clásico («Anuncios de la presentación», overlay en
-> Jellyfin Web). El nuevo sistema **«Anuncios antes de reproducir (pre-roll)»** —vídeos de
-> tu biblioteca que se reproducen antes de cada película/episodio, también en apps
-> nativas— se describe en la sección [13](#13-anuncios-antes-de-reproducir-pre-roll).
+> **Estructura de la página de configuración (v1.4.1).** El Dashboard muestra **3 bloques
+> independientes**, cada uno con su propio botón «Guardar»:
+> 1. **Configuración general** — solo lo que afecta a los dos sistemas: activar el plugin,
+>    idioma de los textos, estadísticas.
+> 2. **Presentación (al iniciar Jellyfin Web)** — el overlay web: inyección del script,
+>    carpeta de la presentación, «Qué anuncios mostrar», modo de visualización, cuenta
+>    atrás / omitir, vídeo, apariencia, y la lista de anuncios de la presentación. Es todo
+>    lo que este documento describe en las secciones 4–12.
+> 3. **Anuncios antes de reproducir (pre-roll)** — sección [13](#13-anuncios-antes-de-reproducir-pre-roll):
+>    vídeos de tu biblioteca antes de cada película/episodio, también en apps nativas.
 
 Este documento explica, campo por campo, **para qué sirve cada opción**, **qué valor
 tiene por defecto** y, sobre todo, **qué ocurre en tiempo de ejecución cuando la
@@ -550,7 +555,22 @@ videos*), sube ahí tus clips y elígelos en el editor.
 Cualquier excepción durante la selección se captura y se registra
 (`[StartupAds] Pre-roll selection failed`); **nunca** rompe la reproducción.
 
-### 13.2. Ajustes generales del pre-roll
+### 13.2. La carpeta de vídeos del pre-roll (v1.4.1)
+
+**«Carpeta de vídeos del pre-roll»** es una carpeta absoluta del servidor que **debe estar
+dentro de una biblioteca de Jellyfin** (Jellyfin solo reproduce como intro un vídeo que ya
+tenga indexado). Es **independiente** de la carpeta de la presentación.
+
+| Botón | Qué hace |
+|---|---|
+| **Validar carpeta** (`POST Admin/Preroll/ValidateDirectory`) | Comprueba que la ruta existe, no es de sistema ni de red, y **cuenta cuántos vídeos de la biblioteca de Jellyfin** están dentro. Si hay 0 avisa de que falta añadirla/escanearla como biblioteca. |
+| **Escanear e importar vídeos** (`POST Admin/Preroll/Scan`) | Crea **un pre-roll por cada vídeo indexado** de esa carpeta (marcado como *importado*), y **elimina** los pre-rolls *importados* cuyo vídeo ya no está. Los pre-rolls creados a mano **nunca** se tocan. Es idempotente. |
+
+Con la carpeta fijada, el **buscador de «Añadir pre-roll»** (`Admin/Preroll/Candidates`)
+solo devuelve vídeos que estén dentro de ella. Si la dejas vacía, se busca en toda la
+biblioteca (comportamiento de v1.4.0).
+
+### 13.3. Ajustes generales del pre-roll
 
 | Opción | Por defecto | Efecto en runtime |
 |---|---|---|
@@ -562,7 +582,7 @@ Cualquier excepción durante la selección se captura y se registra
 | **Frecuencia** | Cada reproducción | `Cada reproducción`; `Una vez al día` (por usuario, registro en `ShownLog`, se purga a los 14 días); `Porcentaje` (se tira un dado 0–99 contra el %). |
 | **Probabilidad (%)** | 100 | Solo visible con frecuencia = *Porcentaje*. Rango 1–100. |
 
-### 13.3. Ajustes de cada anuncio pre-roll
+### 13.4. Ajustes de cada anuncio pre-roll
 
 | Campo | Notas |
 |---|---|
@@ -575,7 +595,7 @@ Cualquier excepción durante la selección se captura y se registra
 | **Franja horaria** (inicio / fin) | Soporta franjas que cruzan medianoche (misma lógica que la presentación). |
 | **Usuarios** | Vacío = todos. Con lista → solo esos usuarios. |
 
-### 13.4. API interna (todos bajo `RequiresElevation`)
+### 13.5. API interna (todos bajo `RequiresElevation`)
 
 | Método | Ruta | Uso |
 |---|---|---|
@@ -585,7 +605,9 @@ Cualquier excepción durante la selección se captura y se registra
 | `DELETE` | `StartupAds/Admin/Preroll/Advertisements/{id}` | Borrar |
 | `POST` | `StartupAds/Admin/Preroll/Advertisements/{id}/Enabled/{value}` | Activar/desactivar |
 | `POST` | `StartupAds/Admin/Preroll/Advertisements/{id}/Duplicate` | Duplicar (queda inactivo) |
-| `GET` | `StartupAds/Admin/Preroll/Candidates?q=` | Buscar vídeos de la biblioteca |
+| `GET` | `StartupAds/Admin/Preroll/Candidates?q=` | Buscar vídeos (limitado a la carpeta del pre-roll si está fijada) |
+| `POST` | `StartupAds/Admin/Preroll/ValidateDirectory` | Validar la carpeta de vídeos del pre-roll |
+| `POST` | `StartupAds/Admin/Preroll/Scan` | Importar los vídeos de la carpeta del pre-roll |
 
-Todo se guarda en el mismo `PluginConfiguration` (nodo `Preroll`), en el
-`configurations/Jellyfin.Plugin.StartupAds.xml` de Jellyfin.
+Todo se guarda en el mismo `PluginConfiguration` (nodo `Preroll`, con `VideosDirectory`),
+en el `configurations/Jellyfin.Plugin.StartupAds.xml` de Jellyfin.

@@ -12,12 +12,38 @@ desde el Dashboard, con controles de seguridad adecuados.
 |---|---|
 | Jellyfin | **10.11.11** (targetAbi `10.11.0.0`) |
 | .NET | **9.0** |
-| Versión del plugin | **1.4.0.0** |
+| Versión del plugin | **1.4.1.0** |
 | Paquetes | `Jellyfin.Controller` / `Jellyfin.Model` 10.11.11 (`ExcludeAssets=runtime`) |
 | Licencia | MIT |
 
 > 📖 **Guía completa de configuración y funcionamiento** (qué hace cada opción y qué
 > se ejecuta en runtime): [`docs/CONFIGURACION.md`](docs/CONFIGURACION.md)
+
+---
+
+## Novedad v1.4.1 — la configuración, en 3 bloques claros + carpeta del pre-roll
+
+La página del Dashboard estaba mezclando en «Configuración general» ajustes que en
+realidad son **solo de la presentación**. Ahora hay **3 bloques independientes**, cada
+uno con su propio botón **Guardar**:
+
+| Bloque | Qué contiene | A qué afecta |
+|---|---|---|
+| **1 · Configuración general** | Activar el plugin, Idioma, Estadísticas | A **los dos** sistemas |
+| **2 · Presentación (al iniciar Jellyfin Web)** | Inyección del script, **carpeta de la presentación**, «Qué anuncios mostrar», modo de visualización, cuenta atrás / omitir, vídeo, apariencia + **lista de anuncios de la presentación** | Solo al overlay web |
+| **3 · Anuncios antes de reproducir (pre-roll)** | Activar, **carpeta de vídeos del pre-roll**, a qué contenido aplica, máximo por reproducción, orden, aleatorio, frecuencia + **lista de vídeos pre-roll** | Solo al pre-roll |
+
+**Nuevo en el pre-roll: «Carpeta de vídeos del pre-roll».** Es una carpeta del servidor
+—**dentro de una biblioteca de Jellyfin**— donde tienes tus clips de anuncio. Con ella:
+
+- **Validar carpeta** comprueba que existe y que Jellyfin tiene vídeos indexados ahí.
+- **Escanear e importar vídeos** crea un pre-roll por cada vídeo de esa carpeta (y quita
+  los que se importaron antes y cuyo vídeo ya no está). Los pre-rolls hechos a mano no se tocan.
+- El buscador de **«Añadir pre-roll»** ya solo muestra los vídeos de esa carpeta.
+
+Además, el proveedor de intros ahora envía también la **ruta** del vídeo
+(`IntroInfo.Path`, como *Local Intros*) y **descarta al vuelo** cualquier pre-roll cuyo
+vídeo se haya borrado de la biblioteca.
 
 ---
 

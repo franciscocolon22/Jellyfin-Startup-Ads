@@ -110,6 +110,90 @@ namespace Jellyfin.Plugin.StartupAds.Services
             });
         }
 
+        /// <summary>Result of <see cref="SyncFolder"/>.</summary>
+        public sealed class ScanResult
+        {
+            public int Imported { get; set; }
+
+            public int RemovedMissing { get; set; }
+
+            public int Total { get; set; }
+        }
+
+        /// <summary>
+        /// Reconciles the pre-roll ad list with the videos currently found in the pre-roll folder:
+        /// adds one <see cref="PrerollAd"/> per new library video and removes previously
+        /// auto-imported ads whose video is no longer there. Ads created by hand are never touched.
+        /// </summary>
+        public ScanResult SyncFolder(IReadOnlyList<(Guid ItemId, string Name)> libraryVideos)
+        {
+            var cfg = Config;
+            var result = Reconcile(cfg.Advertisements, libraryVideos);
+
+            if (result.Imported > 0 || result.RemovedMissing > 0)
+            {
+                Save();
+            }
+
+            _logger.LogInformation(
+                "[StartupAds] Pre-roll folder scan: +{Imported} / -{Removed} (total {Total}).",
+                result.Imported,
+                result.RemovedMissing,
+                result.Total);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Pure reconciliation of the ad list against the folder's videos: adds a new
+        /// <see cref="PrerollAd"/> (<see cref="PrerollAd.AutoImported"/> = true) for each library
+        /// video not already referenced, and removes previously auto-imported ads whose video is no
+        /// longer present. Hand-made ads are never added or removed. Mutates <paramref name="ads"/>.
+        /// </summary>
+        public static ScanResult Reconcile(List<PrerollAd> ads, IReadOnlyList<(Guid ItemId, string Name)> libraryVideos)
+        {
+            var found = new HashSet<Guid>(libraryVideos.Select(v => v.ItemId));
+            var existingIds = new HashSet<Guid>();
+            foreach (var ad in ads)
+            {
+                if (Guid.TryParse(ad.ItemId, out var g))
+                {
+                    existingIds.Add(g);
+                }
+            }
+
+            var result = new ScanResult();
+
+            foreach (var (id, name) in libraryVideos)
+            {
+                if (id == Guid.Empty || !existingIds.Add(id))
+                {
+                    continue;
+                }
+
+                var order = ads.Count == 0 ? 1 : ads.Max(a => a.Order) + 1;
+                ads.Add(new PrerollAd
+                {
+                    Id = Guid.NewGuid(),
+                    Name = string.IsNullOrWhiteSpace(name) ? "Pre-roll" : name,
+                    ItemId = id.ToString(),
+                    ItemName = name ?? string.Empty,
+                    Enabled = true,
+                    Priority = 5,
+                    Order = order,
+                    AutoImported = true
+                });
+                result.Imported++;
+            }
+
+            result.RemovedMissing = ads.RemoveAll(a =>
+                a.AutoImported
+                && (!Guid.TryParse(a.ItemId, out var g) || !found.Contains(g)));
+
+            result.Total = ads.Count;
+            return result;
+        }
+
         /// <summary>
         /// Pure selection: enabled → schedule → user targeting → ordering → optional random pick
         /// → <see cref="PrerollConfiguration.MaxPerPlayback"/> cap.

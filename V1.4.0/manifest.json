@@ -9,6 +9,14 @@
         "imageUrl": "",
         "versions": [
             {
+                "version": "1.4.1.0",
+                "changelog": "Configuración reorganizada en 3 bloques independientes: «1 · General» (activar plugin, idioma, estadísticas — aplica a los dos sistemas), «2 · Presentación» (overlay de Jellyfin Web) y «3 · Pre-roll» (antes de cada vídeo), cada uno con su propio botón «Guardar». NUEVO: el pre-roll tiene su «Carpeta de vídeos» con «Validar carpeta» y «Escanear e importar vídeos»; el buscador de vídeos se limita a esa carpeta. El proveedor de pre-roll envía también IntroInfo.Path y descarta anuncios cuyo vídeo ya no existe. Incluye v1.4.0 y v1.3.4/v1.3.3/v1.3.2/v1.3.1/v1.3.0/v1.2.0/v1.1.0.",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/franciscocolon22/Jellyfin-Startup-Ads/releases/download/v1.4.1/jellyfin-startup-ads_1.4.1.0.zip",
+                "checksum": "2c847d067bf619ca4c2bed4d7f48216c",
+                "timestamp": "2026-09-03T23:30:00Z"
+            },
+            {
                 "version": "1.4.0.0",
                 "changelog": "NUEVO segundo sistema de anuncios independiente: «Anuncios antes de reproducir (pre-roll)». Vía el IIntroProvider de Jellyfin reproduce vídeos de tu biblioteca ANTES de cada película o episodio, y funciona en apps nativas (Android APK, Android TV…), no solo en Jellyfin Web. Tiene su propia sección de configuración y su propia lista de anuncios, separada de «Anuncios de la presentación»: activación independiente, a qué contenido aplica (películas / episodios / ambos), máximo por reproducción, orden, elección aleatoria, frecuencia (cada vez / una vez al día / porcentaje), programación por fechas, días de la semana y franja horaria, y segmentación por usuario. Incluye v1.3.4/v1.3.3/v1.3.2/v1.3.1/v1.3.0/v1.2.0/v1.1.0.",
                 "targetAbi": "10.11.0.0",

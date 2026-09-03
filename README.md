@@ -24,7 +24,7 @@ Luego instala **Jellyfin Startup Ads** desde el catálogo y reinicia Jellyfin.
 
 | Carpeta | Estado |
 |---|---|
-| [`V1.4.0/`](V1.4.0/) | **Versión actual.** Añade el sistema pre-roll. |
+| [`V1.4.0/`](V1.4.0/) | **Versión actual** (plugin v1.4.1). Sistema pre-roll + configuración en 3 bloques. |
 | [`V1.3/`](V1.3/) | Snapshot congelada de la v1.3.4 (solo overlay web). |
 
 La documentación completa está en [`V1.4.0/README.md`](V1.4.0/README.md) y

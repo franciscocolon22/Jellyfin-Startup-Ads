@@ -1,7 +1,7 @@
 ---
 name: "Jellyfin Startup Ads"
 guid: "6d1a9b6e-6b3e-4f9a-9c2d-3a7f1e2c4b90"
-version: "1.4.0.0"
+version: "1.4.1.0"
 targetAbi: "10.11.0.0"
 framework: "net9.0"
 owner: "franciscocolon22"
@@ -16,9 +16,9 @@ category: "General"
 artifacts:
   - "Jellyfin.Plugin.StartupAds.dll"
 changelog: >-
-  v1.4.0 — NUEVO segundo sistema de anuncios independiente: «Anuncios antes de
-  reproducir (pre-roll)». Vía IIntroProvider de Jellyfin reproduce vídeos de la
-  biblioteca antes de cada película o episodio, en apps nativas incluidas. Sección
-  de configuración y lista de anuncios propias, separadas de la presentación:
-  a qué contenido aplica, máximo por reproducción, orden, aleatorio, frecuencia,
-  programación por fechas/días/horas y segmentación por usuario. Incluye v1.3.4.
+  v1.4.1 — Configuración reorganizada en 3 bloques claros: «1 · General» (aplica a
+  los dos sistemas), «2 · Presentación» (overlay web) y «3 · Pre-roll». El pre-roll
+  gana su propia «Carpeta de vídeos» con «Validar carpeta» y «Escanear e importar
+  vídeos»; el buscador de vídeos se limita a esa carpeta. El pre-roll ahora también
+  envía la ruta del vídeo (IntroInfo.Path) y descarta anuncios cuyo vídeo ya no
+  existe. Incluye v1.4.0 y v1.3.4.

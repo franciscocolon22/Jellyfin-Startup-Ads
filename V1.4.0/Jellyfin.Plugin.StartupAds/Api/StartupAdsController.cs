@@ -222,6 +222,7 @@ namespace Jellyfin.Plugin.StartupAds.Api
             incoming.Preroll.ShownLog = p.Configuration.Preroll.ShownLog;
             incoming.Preroll.MaxPerPlayback = Math.Clamp(incoming.Preroll.MaxPerPlayback, 1, 10);
             incoming.Preroll.RandomChancePercent = Math.Clamp(incoming.Preroll.RandomChancePercent, 1, 100);
+            incoming.Preroll.VideosDirectory = (incoming.Preroll.VideosDirectory ?? string.Empty).Trim();
 
             incoming.DefaultDurationSeconds = Math.Clamp(incoming.DefaultDurationSeconds, 1, 600);
             incoming.SkipAfterSeconds = Math.Clamp(incoming.SkipAfterSeconds, 0, 600);
@@ -360,16 +361,22 @@ namespace Jellyfin.Plugin.StartupAds.Api
             return clone is null ? NotFound() : Ok(clone);
         }
 
-        /// <summary>Searches the library for videos usable as a pre-roll.</summary>
+        /// <summary>
+        /// Searches the library for videos usable as a pre-roll. When a pre-roll folder is
+        /// configured the results are limited to videos inside it.
+        /// </summary>
         [HttpGet("Admin/Preroll/Candidates")]
         [Authorize(Policy = "RequiresElevation")]
         public ActionResult<IEnumerable<object>> PrerollCandidates([FromQuery] string? q)
         {
+            var dir = Config.Preroll?.VideosDirectory ?? string.Empty;
+            var scoped = !string.IsNullOrWhiteSpace(dir);
+
             var query = new InternalItemsQuery
             {
                 IncludeItemTypes = new[] { BaseItemKind.Movie, BaseItemKind.Video, BaseItemKind.Episode },
                 Recursive = true,
-                Limit = 40
+                Limit = scoped ? 500 : 40
             };
 
             if (!string.IsNullOrWhiteSpace(q))
@@ -379,6 +386,8 @@ namespace Jellyfin.Plugin.StartupAds.Api
 
             var items = _libraryManager.GetItemList(query)
                 .Where(i => i.MediaType == MediaType.Video)
+                .Where(i => !scoped || MediaFileService.PathIsInside(i.Path, dir))
+                .Take(60)
                 .Select(i => new
                 {
                     Id = i.Id.ToString(),
@@ -390,6 +399,74 @@ namespace Jellyfin.Plugin.StartupAds.Api
                 });
 
             return Ok(items);
+        }
+
+        /// <summary>Validates the pre-roll videos folder (filesystem + how many indexed videos live in it).</summary>
+        [HttpPost("Admin/Preroll/ValidateDirectory")]
+        [Authorize(Policy = "RequiresElevation")]
+        public ActionResult<PathValidationResult> ValidatePrerollDirectory([FromBody] ValidatePathRequest req)
+        {
+            var result = _files.ValidateDirectory(req.Path);
+            if (!result.Exists)
+            {
+                return Ok(result);
+            }
+
+            var indexed = CountLibraryVideosIn(req.Path);
+            if (indexed == 0)
+            {
+                result.Ok = false;
+                result.Message = "La carpeta existe, pero Jellyfin no tiene ningún vídeo indexado en ella. "
+                    + "Añádela como biblioteca (o parte de una) y ejecuta un escaneo de la biblioteca.";
+            }
+            else
+            {
+                result.Ok = true;
+                result.CompatibleFileCount = indexed;
+                result.Message = $"Carpeta válida. {indexed} vídeo(s) de la biblioteca disponibles como pre-roll.";
+            }
+
+            return Ok(result);
+        }
+
+        /// <summary>Imports every indexed video inside the pre-roll folder as a pre-roll ad.</summary>
+        [HttpPost("Admin/Preroll/Scan")]
+        [Authorize(Policy = "RequiresElevation")]
+        public ActionResult<PrerollManager.ScanResult> ScanPreroll()
+        {
+            var dir = Config.Preroll?.VideosDirectory ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(dir))
+            {
+                return BadRequest("Configura primero la carpeta de vídeos del pre-roll.");
+            }
+
+            var videos = _libraryManager.GetItemList(new InternalItemsQuery
+            {
+                IncludeItemTypes = new[] { BaseItemKind.Movie, BaseItemKind.Video, BaseItemKind.Episode },
+                Recursive = true,
+                Limit = 1000
+            })
+            .Where(i => i.MediaType == MediaType.Video && MediaFileService.PathIsInside(i.Path, dir))
+            .Select(i => (i.Id, i.Name ?? "Pre-roll"))
+            .ToList();
+
+            return Ok(_preroll.SyncFolder(videos));
+        }
+
+        private int CountLibraryVideosIn(string? directory)
+        {
+            if (string.IsNullOrWhiteSpace(directory))
+            {
+                return 0;
+            }
+
+            return _libraryManager.GetItemList(new InternalItemsQuery
+            {
+                IncludeItemTypes = new[] { BaseItemKind.Movie, BaseItemKind.Video, BaseItemKind.Episode },
+                Recursive = true,
+                Limit = 1000
+            })
+            .Count(i => i.MediaType == MediaType.Video && MediaFileService.PathIsInside(i.Path, directory));
         }
 
         [HttpGet("Admin/Preview")]

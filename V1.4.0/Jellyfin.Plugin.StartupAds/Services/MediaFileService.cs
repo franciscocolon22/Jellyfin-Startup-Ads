@@ -366,6 +366,27 @@ namespace Jellyfin.Plugin.StartupAds.Services
         // Helpers
         // ------------------------------------------------------------------
 
+        /// <summary>
+        /// True when <paramref name="path"/> is the same folder as, or lives inside,
+        /// <paramref name="ancestor"/>. Case-insensitive on Windows. Both are normalised first.
+        /// </summary>
+        public static bool PathIsInside(string? path, string? ancestor)
+        {
+            if (string.IsNullOrWhiteSpace(path) || string.IsNullOrWhiteSpace(ancestor))
+            {
+                return false;
+            }
+
+            try
+            {
+                return IsInside(Path.GetFullPath(path.Trim()), Path.GetFullPath(ancestor.Trim()));
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
         /// <summary>True when <paramref name="path"/> equals or is contained by <paramref name="ancestor"/>.</summary>
         private static bool IsInside(string path, string ancestor)
         {

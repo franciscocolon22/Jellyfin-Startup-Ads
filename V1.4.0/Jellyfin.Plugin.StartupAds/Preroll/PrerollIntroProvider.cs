@@ -25,10 +25,12 @@ namespace Jellyfin.Plugin.StartupAds.Preroll
     public sealed class PrerollIntroProvider : IIntroProvider
     {
         private readonly ILogger<PrerollIntroProvider> _logger;
+        private readonly ILibraryManager _libraryManager;
 
-        public PrerollIntroProvider(ILoggerFactory loggerFactory)
+        public PrerollIntroProvider(ILoggerFactory loggerFactory, ILibraryManager libraryManager)
         {
             _logger = loggerFactory.CreateLogger<PrerollIntroProvider>();
+            _libraryManager = libraryManager;
         }
 
         public string Name => "Jellyfin Startup Ads";
@@ -79,10 +81,24 @@ namespace Jellyfin.Plugin.StartupAds.Preroll
                     return Empty;
                 }
 
-                var infos = chosen
-                    .Where(a => Guid.TryParse(a.ItemId, out var g) && g != Guid.Empty)
-                    .Select(a => new IntroInfo { ItemId = Guid.Parse(a.ItemId) })
-                    .ToList();
+                var infos = new List<IntroInfo>();
+                foreach (var a in chosen)
+                {
+                    if (!Guid.TryParse(a.ItemId, out var g) || g == Guid.Empty)
+                    {
+                        continue;
+                    }
+
+                    // The intro must resolve to a video still present in a library; skip stale ids.
+                    var libItem = _libraryManager.GetItemById(g);
+                    if (libItem is null || string.IsNullOrEmpty(libItem.Path))
+                    {
+                        _logger.LogWarning("[StartupAds] Pre-roll '{Name}': el vídeo ya no está en la biblioteca.", a.Name);
+                        continue;
+                    }
+
+                    infos.Add(new IntroInfo { ItemId = g, Path = libItem.Path });
+                }
 
                 if (infos.Count == 0)
                 {

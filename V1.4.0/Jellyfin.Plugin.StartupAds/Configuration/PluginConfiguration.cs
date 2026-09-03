@@ -86,6 +86,7 @@ namespace Jellyfin.Plugin.StartupAds.Configuration
             Enabled = true;
             Priority = 5;
             Order = 0;
+            AutoImported = false;
             DaysOfWeek = new List<int>();
             AllowedUserIds = new List<string>();
         }
@@ -106,6 +107,9 @@ namespace Jellyfin.Plugin.StartupAds.Configuration
         public int Priority { get; set; }
 
         public int Order { get; set; }
+
+        /// <summary>True when created by "scan &amp; import" of the pre-roll folder (not by hand).</summary>
+        public bool AutoImported { get; set; }
 
         public DateTime? StartDate { get; set; }
 
@@ -136,6 +140,7 @@ namespace Jellyfin.Plugin.StartupAds.Configuration
         public PrerollConfiguration()
         {
             Enabled = false;
+            VideosDirectory = string.Empty;
             AppliesTo = PrerollAppliesTo.MoviesAndEpisodes;
             MaxPerPlayback = 1;
             OrderMode = AdOrderMode.Priority;
@@ -147,6 +152,14 @@ namespace Jellyfin.Plugin.StartupAds.Configuration
         }
 
         public bool Enabled { get; set; }
+
+        /// <summary>
+        /// Absolute path to the folder that holds the pre-roll video files. It must live inside a
+        /// Jellyfin library (Jellyfin only plays intros that resolve to an indexed library item).
+        /// Used to scope the "choose a video" search and the "scan &amp; import" action. Empty = the
+        /// whole library is searchable.
+        /// </summary>
+        public string VideosDirectory { get; set; }
 
         public PrerollAppliesTo AppliesTo { get; set; }
 

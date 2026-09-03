@@ -13,21 +13,51 @@
             <div class="verticalSection">
                 <h1>Jellyfin Startup Ads</h1>
                 <p class="fieldDescription">
-                    Muestra anuncios multimedia (imagen, vídeo o texto) automáticamente al abrir Jellyfin Web.
+                    Dos sistemas de anuncios independientes: la <b>Presentación</b> (overlay al abrir
+                    Jellyfin Web) y el <b>Pre-roll</b> (un vídeo de tu biblioteca antes de cada película
+                    o episodio, también en apps nativas). La <b>Configuración general</b> se aplica a los
+                    dos; además, cada sistema tiene su propia sección con sus propios ajustes y su propia
+                    lista de anuncios.
                 </p>
             </div>
 
-            <!-- ================= GENERAL ================= -->
+            <!-- ================= 1 · GENERAL (aplica a los dos sistemas) ================= -->
             <form id="saGeneralForm" class="saForm">
-                <h2>Configuración general</h2>
+                <h2>1 · Configuración general</h2>
+                <p class="fieldDescription">Se aplica tanto a la Presentación como al Pre-roll.</p>
 
                 <div class="checkboxContainer">
                     <label><input is="emby-checkbox" type="checkbox" id="saEnabled" />
-                        <span>Activar anuncios</span></label>
+                        <span>Activar el plugin (si se desactiva no se muestra ningún anuncio de ningún tipo)</span></label>
+                </div>
+                <div class="selectContainer">
+                    <label class="selectLabel" for="saLanguage">Idioma de los textos</label>
+                    <select is="emby-select" id="saLanguage">
+                        <option value="es">Español</option>
+                        <option value="en">English</option>
+                    </select>
                 </div>
                 <div class="checkboxContainer">
+                    <label><input is="emby-checkbox" type="checkbox" id="saStats" />
+                        <span>Activar estadísticas (impresión / inicio / completado / omitido / clic)</span></label>
+                </div>
+
+                <br />
+                <button is="emby-button" type="submit" class="raised button-submit block"><span>Guardar</span></button>
+            </form>
+
+            <!-- ================= 2 · PRESENTACIÓN (solo overlay de Jellyfin Web) ================= -->
+            <form id="saPresentationForm" class="saForm"
+                  style="margin-top:2.5em;border-top:2px solid rgba(255,255,255,.15);padding-top:1.5em;">
+                <h2>2 · Presentación (al iniciar Jellyfin Web)</h2>
+                <p class="fieldDescription">
+                    El overlay con imagen, vídeo o texto que aparece <b>al abrir o iniciar sesión en
+                    Jellyfin Web</b>. Solo navegador: no aplica a las apps nativas.
+                </p>
+
+                <div class="checkboxContainer">
                     <label><input is="emby-checkbox" type="checkbox" id="saShowOnStartup" />
-                        <span>Mostrar anuncios al iniciar Jellyfin Web</span></label>
+                        <span>Mostrar la presentación al iniciar Jellyfin Web</span></label>
                 </div>
                 <div class="checkboxContainer">
                     <label><input is="emby-checkbox" type="checkbox" id="saInject" />
@@ -40,11 +70,12 @@
                 </div>
 
                 <div class="inputContainer">
-                    <label class="inputLabel inputLabelUnfocused" for="saAdsDirectory">Ruta de anuncios</label>
+                    <label class="inputLabel inputLabelUnfocused" for="saAdsDirectory">Carpeta de la presentación</label>
                     <input is="emby-input" type="text" id="saAdsDirectory" placeholder="/var/lib/jellyfin/startup-ads" />
                     <div class="fieldDescription">
-                        Carpeta absoluta del servidor con las imágenes y vídeos.
+                        Carpeta absoluta del servidor con las imágenes y vídeos de la presentación.
                         Ejemplos: <code>/var/lib/jellyfin/startup-ads</code>, <code>D:\Jellyfin\StartupAds</code>.
+                        (No es la misma carpeta que la del pre-roll.)
                     </div>
                 </div>
                 <div>
@@ -168,18 +199,6 @@
                     <label class="inputLabel inputLabelUnfocused" for="saAccent">Color de acento (#RRGGBB)</label>
                     <input is="emby-input" type="text" id="saAccent" placeholder="#00a4dc" />
                 </div>
-                <div class="selectContainer">
-                    <label class="selectLabel" for="saLanguage">Idioma de los textos</label>
-                    <select is="emby-select" id="saLanguage">
-                        <option value="es">Español</option>
-                        <option value="en">English</option>
-                    </select>
-                </div>
-                <div class="checkboxContainer">
-                    <label><input is="emby-checkbox" type="checkbox" id="saStats" />
-                        <span>Activar estadísticas (impresión / inicio / completado / omitido / clic)</span></label>
-                </div>
-
                 <br />
                 <button is="emby-button" type="submit" class="raised button-submit block">
                     <span>Guardar</span>
@@ -188,7 +207,7 @@
 
             <!-- ================= ADVERTISEMENTS (presentación) ================= -->
             <div class="verticalSection" style="margin-top:2em;">
-                <h2>Anuncios de la presentación</h2>
+                <h3>Lista de anuncios de la presentación</h3>
                 <button is="emby-button" type="button" id="saNewAd" class="raised block">
                     <span>Crear anuncio</span>
                 </button>
@@ -212,7 +231,7 @@
 
             <!-- ================= PRE-ROLL (antes de reproducir) ================= -->
             <form id="saPrerollForm" class="saForm" style="margin-top:2.5em;border-top:2px solid rgba(255,255,255,.15);padding-top:1.5em;">
-                <h2>Anuncios antes de reproducir (pre-roll)</h2>
+                <h2>3 · Anuncios antes de reproducir (pre-roll)</h2>
                 <p class="fieldDescription">
                     Reproduce un <b>vídeo</b> de tu biblioteca antes de cada película/episodio. <b>Funciona en la
                     app de Android, Android TV, Roku, etc.</b> (el cliente debe tener activado «Cinema Mode /
@@ -224,6 +243,23 @@
                     <label><input is="emby-checkbox" type="checkbox" id="prEnabled" />
                         <span>Activar anuncios antes de reproducir</span></label>
                 </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="prVideosDirectory">Carpeta de vídeos del pre-roll</label>
+                    <input is="emby-input" type="text" id="prVideosDirectory" placeholder="/var/lib/jellyfin/media/Anuncios" />
+                    <div class="fieldDescription">
+                        Carpeta absoluta del servidor con los vídeos que se usan como pre-roll.
+                        <b>Tiene que estar dentro de una biblioteca de Jellyfin</b> (Jellyfin solo reproduce como
+                        intro un vídeo que ya tenga indexado). Al fijarla, el buscador de «Añadir pre-roll» solo
+                        muestra los vídeos de esta carpeta. Es independiente de la carpeta de la presentación.
+                    </div>
+                </div>
+                <div>
+                    <button is="emby-button" type="button" id="prValidateDir" class="raised"><span>Validar carpeta</span></button>
+                    <button is="emby-button" type="button" id="prScanDir" class="raised"><span>Escanear e importar vídeos</span></button>
+                </div>
+                <div id="prDirResult" class="fieldDescription" style="margin-top:8px;"></div>
+
                 <div class="selectContainer">
                     <label class="selectLabel" for="prAppliesTo">Aplicar a</label>
                     <select is="emby-select" id="prAppliesTo">
@@ -712,6 +748,7 @@
 
                     var pr = c.Preroll || {};
                     setChk('prEnabled', pr.Enabled);
+                    setVal('prVideosDirectory', pr.VideosDirectory || '');
                     setVal('prAppliesTo', pr.AppliesTo || 'MoviesAndEpisodes');
                     setVal('prMax', pr.MaxPerPlayback || 1);
                     setVal('prOrder', pr.OrderMode || 'Priority');
@@ -749,6 +786,7 @@
                     Language: val('saLanguage'), EnableStatistics: chk('saStats'),
                     Preroll: {
                         Enabled: chk('prEnabled'),
+                        VideosDirectory: val('prVideosDirectory'),
                         AppliesTo: val('prAppliesTo'),
                         MaxPerPlayback: num('prMax') || 1,
                         OrderMode: val('prOrder'),
@@ -782,6 +820,32 @@
                     Dashboard.alert('Escaneo: ' + (r.Imported || 0) + ' importados, ' +
                         (r.RemovedMissing || 0) + ' eliminados.');
                     loadFiles().then(loadAds);
+                }).catch(function (err) {
+                    Dashboard.hideLoadingMsg();
+                    Dashboard.alert({ title: 'Error', message: errText(err) });
+                });
+            }
+
+            function prValidateDir() {
+                var out = q(state.view, 'prDirResult');
+                out.textContent = 'Validando…';
+                req('POST', 'Admin/Preroll/ValidateDirectory', { Path: val('prVideosDirectory') }).then(function (r) {
+                    out.textContent = r.Message;
+                    out.style.color = r.Ok ? '#66bb6a' : '#ffa726';
+                }).catch(function (err) { out.textContent = errText(err); out.style.color = '#ff8a80'; });
+            }
+
+            function prScanDir() {
+                if (!val('prVideosDirectory').trim()) {
+                    Dashboard.alert('Primero escribe y guarda la carpeta de vídeos del pre-roll.');
+                    return;
+                }
+                Dashboard.showLoadingMsg();
+                req('POST', 'Admin/Preroll/Scan').then(function (r) {
+                    Dashboard.hideLoadingMsg();
+                    Dashboard.alert('Escaneo del pre-roll: ' + (r.Imported || 0) + ' importados, ' +
+                        (r.RemovedMissing || 0) + ' eliminados (total ' + (r.Total || 0) + ').');
+                    loadPrerollAds();
                 }).catch(function (err) {
                     Dashboard.hideLoadingMsg();
                     Dashboard.alert({ title: 'Error', message: errText(err) });
@@ -1242,6 +1306,9 @@
                 state.prModal.style.display = 'flex';
                 document.addEventListener('keydown', onPrModalKey, true);
                 setTimeout(function () { var n = q(state.prModal, 'prAdName'); if (n) { n.focus(); } }, 30);
+
+                /* Prefill the picker: with a pre-roll folder set, this lists that folder's videos. */
+                if (!ad.Id) { prSearch(); }
             }
 
             function closePrEditor() {
@@ -1322,6 +1389,7 @@
                 state.modal = modal;
 
                 view.querySelector('#saGeneralForm').addEventListener('submit', saveConfig);
+                view.querySelector('#saPresentationForm').addEventListener('submit', saveConfig);
                 view.querySelector('#saValidatePath').addEventListener('click', validatePath);
                 view.querySelector('#saScan').addEventListener('click', scan);
                 view.querySelector('#saNewAd').addEventListener('click', function () { openEditor(null); });
@@ -1346,6 +1414,8 @@
                 view.querySelector('#saPrerollForm').addEventListener('submit', saveConfig);
                 view.querySelector('#prNewAd').addEventListener('click', function () { openPrEditor(null); });
                 view.querySelector('#prFrequency').addEventListener('change', syncPrChance);
+                view.querySelector('#prValidateDir').addEventListener('click', prValidateDir);
+                view.querySelector('#prScanDir').addEventListener('click', prScanDir);
 
                 prModal.querySelector('#prCancelEdit').addEventListener('click', closePrEditor);
                 prModal.querySelector('#prModalX').addEventListener('click', closePrEditor);

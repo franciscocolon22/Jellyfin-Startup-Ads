@@ -1,0 +1,200 @@
+/* Jellyfin Startup Ads - overlay styles. All selectors are namespaced under
+   #startup-ads-overlay / .startup-ads-* to avoid colliding with Jellyfin Web. */
+
+#startup-ads-overlay.startup-ads-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: 3vmin;
+    background: rgba(0, 0, 0, var(--sa-overlay-opacity, 0.85));
+    opacity: 0;
+    transition: opacity 0.22s ease;
+    -webkit-font-smoothing: antialiased;
+}
+
+#startup-ads-overlay.startup-ads-overlay * {
+    box-sizing: border-box;
+}
+
+#startup-ads-overlay.startup-ads-show { opacity: 1; }
+#startup-ads-overlay.startup-ads-hide { opacity: 0; }
+
+#startup-ads-overlay .startup-ads-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    /* Driven by JS-set custom properties so per-mode rules below can override them. */
+    max-width: var(--sa-max-w, 900px);
+    max-height: min(var(--sa-max-h, 700px), 88vh);
+    border-radius: var(--sa-radius, 14px);
+    overflow: hidden;
+    background: #101418;
+    background-size: cover;
+    background-position: center;
+    color: #f4f6f8;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+    transform: scale(0.94);
+    transition: transform 0.22s ease;
+    font-family: inherit;
+    outline: none;
+}
+
+#startup-ads-overlay.startup-ads-show .startup-ads-card { transform: scale(1); }
+
+/* ---- Modo: Pantalla completa ---- */
+#startup-ads-overlay.startup-ads-mode-fullscreen {
+    padding: 0;
+}
+#startup-ads-overlay.startup-ads-mode-fullscreen .startup-ads-card {
+    max-width: none;
+    max-height: none;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 0;
+}
+
+/* ---- Modo: Banner central ---- */
+#startup-ads-overlay.startup-ads-mode-centerbanner .startup-ads-card {
+    max-width: min(var(--sa-max-w, 900px), 1100px);
+    max-height: 46vh;
+}
+#startup-ads-overlay.startup-ads-mode-centerbanner .startup-ads-media {
+    max-height: 30vh;
+}
+
+#startup-ads-overlay .startup-ads-media {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+}
+
+#startup-ads-overlay .startup-ads-image,
+#startup-ads-overlay .startup-ads-video {
+    width: 100%;
+    height: 100%;
+    max-height: 62vh;
+    object-fit: contain;
+    display: block;
+}
+
+#startup-ads-overlay.startup-ads-mode-fullscreen .startup-ads-image,
+#startup-ads-overlay.startup-ads-mode-fullscreen .startup-ads-video {
+    max-height: 100vh;
+}
+
+#startup-ads-overlay.startup-ads-mode-centerbanner .startup-ads-image,
+#startup-ads-overlay.startup-ads-mode-centerbanner .startup-ads-video {
+    max-height: 30vh;
+}
+
+#startup-ads-overlay .startup-ads-body {
+    flex: 0 0 auto;
+    padding: 20px 26px 8px;
+    text-align: center;
+}
+
+#startup-ads-overlay .startup-ads-card.startup-ads-has-bg .startup-ads-body {
+    background: linear-gradient(to top, rgba(6, 8, 10, 0.92), rgba(6, 8, 10, 0.4));
+}
+
+#startup-ads-overlay .startup-ads-title {
+    margin: 0 0 8px;
+    font-size: clamp(1.2rem, 2.4vw, 1.9rem);
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+#startup-ads-overlay .startup-ads-desc {
+    margin: 0 auto 14px;
+    max-width: 60ch;
+    font-size: clamp(0.9rem, 1.4vw, 1.05rem);
+    line-height: 1.5;
+    opacity: 0.9;
+    white-space: pre-wrap;
+}
+
+#startup-ads-overlay .startup-ads-btn {
+    appearance: none;
+    -webkit-appearance: none;
+    border: 0;
+    cursor: pointer;
+    font: inherit;
+    border-radius: 6px;
+    transition: filter 0.15s ease, opacity 0.15s ease;
+}
+
+#startup-ads-overlay .startup-ads-btn:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
+#startup-ads-overlay .startup-ads-btn-action {
+    display: inline-block;
+    margin: 4px auto 6px;
+    padding: 11px 26px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--sa-accent, #00a4dc);
+}
+
+#startup-ads-overlay .startup-ads-btn-action:hover { filter: brightness(1.1); }
+
+#startup-ads-overlay .startup-ads-footer {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 20px 18px;
+    min-height: 20px;
+}
+
+#startup-ads-overlay .startup-ads-skip {
+    padding: 9px 22px;
+    font-weight: 600;
+    color: #cfd6dc;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+#startup-ads-overlay .startup-ads-skip[disabled] { cursor: default; opacity: 0.55; }
+#startup-ads-overlay .startup-ads-skip.startup-ads-ready { color: #fff; background: var(--sa-accent, #00a4dc); }
+#startup-ads-overlay .startup-ads-skip[hidden] { display: none; }
+
+#startup-ads-overlay .startup-ads-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    line-height: 32px;
+    font-size: 22px;
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.45);
+}
+
+#startup-ads-overlay .startup-ads-close:hover { background: rgba(0, 0, 0, 0.7); }
+#startup-ads-overlay .startup-ads-close:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+@media (max-width: 640px) {
+    #startup-ads-overlay .startup-ads-body { padding: 14px 16px 4px; }
+    #startup-ads-overlay .startup-ads-image,
+    #startup-ads-overlay .startup-ads-video { max-height: 48vh; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #startup-ads-overlay.startup-ads-overlay,
+    #startup-ads-overlay .startup-ads-card { transition: none; }
+}

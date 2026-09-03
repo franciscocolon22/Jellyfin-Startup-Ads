@@ -1,0 +1,14 @@
+{
+    "category": "General",
+    "changelog": "v1.4.0 — NUEVO: segundo sistema de anuncios independiente, «Anuncios antes de reproducir (pre-roll)». Mediante el IIntroProvider de Jellyfin, reproduce uno o varios vídeos de tu biblioteca ANTES de cada película o episodio, y funciona en apps nativas (Android APK, Android TV, etc.), no solo en Jellyfin Web. Tiene su propia sección de configuración y su propia lista de anuncios, totalmente separada de «Anuncios de la presentación» (el overlay al abrir Jellyfin Web): activación independiente, a qué contenido aplica (películas / episodios / ambos), máximo por reproducción, modo de orden, elección aleatoria, frecuencia (cada vez / una vez al día / porcentaje de probabilidad), programación por fechas, días de la semana y franja horaria, y segmentación por usuario. Cada anuncio pre-roll apunta a un vídeo real de tu biblioteca (buscador incluido). Incluye todo lo de v1.3.4/v1.3.3/v1.3.2/v1.3.1/v1.3.0/v1.2.0/v1.1.0.",
+    "description": "Dos sistemas de anuncios independientes para Jellyfin: (1) overlay multimedia al abrir Jellyfin Web y (2) pre-roll de vídeos de la biblioteca antes de cada película o episodio (apps nativas incluidas). Administrables desde el Dashboard: countdown, omitir, programación, segmentación por usuario, prioridades, aleatorio, botones, estadísticas y directorio externo configurable.",
+    "guid": "6d1a9b6e-6b3e-4f9a-9c2d-3a7f1e2c4b90",
+    "name": "Jellyfin Startup Ads",
+    "overview": "Anuncios al iniciar Jellyfin Web y pre-roll antes de cada vídeo.",
+    "owner": "franciscocolon22",
+    "targetAbi": "10.11.0.0",
+    "version": "1.4.0.0",
+    "timestamp": "2026-09-03T21:00:00Z",
+    "status": "Active",
+    "autoUpdate": true
+}

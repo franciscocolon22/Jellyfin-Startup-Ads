@@ -16,6 +16,9 @@ desde el Dashboard, con controles de seguridad adecuados.
 | Paquetes | `Jellyfin.Controller` / `Jellyfin.Model` 10.11.11 (`ExcludeAssets=runtime`) |
 | Licencia | MIT |
 
+> 📖 **Guía completa de configuración y funcionamiento** (qué hace cada opción y qué
+> se ejecuta en runtime): [`docs/CONFIGURACION.md`](docs/CONFIGURACION.md)
+
 ---
 
 ## Correcciones v1.3.0 – v1.3.1 (tras la primera prueba en servidor real)

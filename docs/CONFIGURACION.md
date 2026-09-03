@@ -1,6 +1,6 @@
 # Jellyfin Startup Ads — Guía de configuración y funcionamiento
 
-> Aplica a la versión **1.3.1** del plugin · Jellyfin **10.11.11** · .NET **9**
+> Aplica a la versión **1.3.2** del plugin · Jellyfin **10.11.11** · .NET **9**
 
 Este documento explica, campo por campo, **para qué sirve cada opción**, **qué valor
 tiene por defecto** y, sobre todo, **qué ocurre en tiempo de ejecución cuando la
@@ -70,8 +70,8 @@ Navegador (Jellyfin Web)
 
 ### 3.1 Al arrancar el servidor Jellyfin
 
-1. El plugin se carga. En el log verás:
-   `[StartupAds] Plugin loaded. Name='Jellyfin Startup Ads' Id=6d1a9b6e... Version=1.3.1.0`
+1. El plugin se carga (aparece en **Dashboard → Complementos** y, gracias a
+   `EnableInMainMenu`, también como enlace directo en el **menú lateral**).
 2. Se registra el middleware de inyección:
    `[StartupAds] index.html injection middleware registered (in-memory, no disk changes).`
 
@@ -356,17 +356,23 @@ otro** (cada uno con su cuenta regresiva; al terminar/omitir uno, empieza el sig
 Al mostrarse un anuncio se calcula:
 
 - `permitirOmitir` = `AllowSkip` del anuncio **y** global
-- `omitirTras` = `SkipAfterSeconds` (segundos hasta poder omitir)
+- `omitirTras` = `SkipAfterSeconds` (segundos desde el inicio hasta que *Omitir* funciona)
 - `duracionTotal` = duración del vídeo (si `Duración = del vídeo`) **o** `DurationSeconds`
   (o la duración predeterminada global)
+- `restante` = `duracionTotal − transcurrido`  ← **esto es lo que muestra la cuenta regresiva**
+  (empieza en `duracionTotal` y baja a 0; **no** empieza en `SkipAfterSeconds`)
 
 Cada **250 ms** se refresca el pie según este cuadro:
 
 | Situación | `SkipButtonMode = DisabledUntilCountdown` | `SkipButtonMode = AppearsAfterCountdown` |
 |---|---|---|
-| `permitirOmitir = false` | botón **oculto**; el anuncio se cerrará solo al llegar a `duracionTotal` | botón **oculto** |
-| Aún no han pasado `omitirTras` segundos | botón **visible y deshabilitado**: `Omitir en N` (o solo `Omitir` si el contador está apagado) | botón **oculto** |
-| Ya pasaron `omitirTras` segundos | botón **habilitado**: `Omitir` (con color de acento) | botón **aparece habilitado**: `Omitir` |
+| `permitirOmitir = false` | si el contador está activo: texto **`Omitir en {restante}`** deshabilitado; si no, nada. El anuncio se cierra solo al llegar `restante = 0` | igual |
+| `transcurrido < omitirTras` | botón **visible y deshabilitado**: `Omitir en {restante}` (o solo `Omitir` si el contador está apagado) | **oculto** (o texto `Omitir en {restante}` si el contador está activo) |
+| `transcurrido ≥ omitirTras` | botón **habilitado**: `Omitir` (color de acento) | botón **aparece habilitado**: `Omitir` |
+
+> Ejemplo: `Duración = 10`, `Permitir omitir después de = 5` → se ve `Omitir en 10, 9, 8, 7, 6`
+> y en ese punto el botón pasa a `Omitir` (clicable). Si quieres que la cuenta llegue a 1 antes
+> de poder omitir, pon `Permitir omitir después de` ≥ `Duración`.
 
 Eventos:
 
@@ -462,7 +468,7 @@ normal solo puede **recibir** anuncios, nunca modificarlos.
 ## 12. Preguntas frecuentes de comportamiento
 
 **Acabo de abrir Jellyfin y no salió nada.**
-Comprueba, por orden: (1) que tienes la **v1.3.1** instalada y reiniciaste Jellyfin;
+Comprueba, por orden: (1) que tienes la **v1.3.2** instalada y reiniciaste Jellyfin;
 (2) `Ctrl+Shift+R` en el navegador; (3) F12 → Network: `StartupAds/ClientScript` = 200 y
 `StartupAds/Config` = 200 con `"Ads":[…]`; (4) que hay **al menos un anuncio activo**
 (créalo o pulsa *Escanear*) y que la **ruta valida OK**; (5) que el anuncio está en

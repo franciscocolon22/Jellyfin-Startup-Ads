@@ -9,6 +9,14 @@
         "imageUrl": "",
         "versions": [
             {
+                "version": "1.3.2.0",
+                "changelog": "Correcciones tras pruebas: el Modo de visualización (Pantalla completa / Banner central) ahora se aplica; la cuenta regresiva cuenta desde la duración del anuncio; 'Reproducir sin sonido' se respeta (atributo muted); al editar un anuncio no se pierde su Origen (Manual/Automático) y se añade columna Origen; el editor muestra solo los campos del tipo elegido y filtra los archivos por tipo; enlace en el menú lateral. Incluye v1.3.1/v1.3.0/v1.2.0/v1.1.0.",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/franciscocolon22/Jellyfin-Startup-Ads/releases/download/v1.3.2/jellyfin-startup-ads_1.3.2.0.zip",
+                "checksum": "6a5d822f8cbb21ca8a6abaa279f0de01",
+                "timestamp": "2026-09-03T15:00:00Z"
+            },
+            {
                 "version": "1.3.1.0",
                 "changelog": "HOTFIX: el <script> inyectado usaba ruta relativa y daba 404 bajo /web, así que el overlay nunca arrancaba. Ahora es ruta absoluta (/StartupAds/ClientScript) con detección del prefijo de proxy inverso. Incluye v1.3.0 (auth 500 + botones del modal) y v1.2.0 (inyección en memoria).",
                 "targetAbi": "10.11.0.0",

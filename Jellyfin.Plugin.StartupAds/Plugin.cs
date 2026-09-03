@@ -6,29 +6,19 @@ using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
-using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.StartupAds
 {
     /// <summary>
-    /// Entry point for the Jellyfin Startup Ads plugin.
+    /// Entry point for the Jellyfin Startup Ads plugin. Constructor signature matches the
+    /// official Jellyfin plugin template exactly (2 parameters) so plugin loading is reliable.
     /// </summary>
     public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     {
-        public Plugin(
-            IApplicationPaths applicationPaths,
-            IXmlSerializer xmlSerializer,
-            ILogger<Plugin> logger)
+        public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer)
             : base(applicationPaths, xmlSerializer)
         {
             Instance = this;
-
-            // Emitted once at load so the server log shows exactly what Jellyfin resolved.
-            logger.LogInformation(
-                "[StartupAds] Plugin loaded. Name='{Name}' Id={Id} Version={Version}",
-                Name,
-                Id,
-                Version);
         }
 
         public static Plugin? Instance { get; private set; }
@@ -42,19 +32,17 @@ namespace Jellyfin.Plugin.StartupAds
 
         public IEnumerable<PluginPageInfo> GetPages()
         {
-            var prefix = GetType().Namespace;
             return new[]
             {
                 new PluginPageInfo
                 {
-                    // "Name" is the route key (configurationpage?name=startupads); keep it
-                    // spaceless and stable. "DisplayName" is what the dashboard shows.
-                    Name = "startupads",
-                    DisplayName = Name,
+                    Name = Name,
                     EmbeddedResourcePath = string.Format(
                         CultureInfo.InvariantCulture,
                         "{0}.Configuration.configPage.html",
-                        prefix)
+                        GetType().Namespace),
+                    EnableInMainMenu = true,
+                    MenuSection = "server"
                 }
             };
         }

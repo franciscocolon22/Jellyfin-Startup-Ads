@@ -258,13 +258,16 @@
         overlay.setAttribute('aria-label', ad.Title || 'Anuncio');
         overlay.style.setProperty('--sa-overlay-opacity', String(cfg.OverlayOpacity != null ? cfg.OverlayOpacity : 0.85));
         overlay.style.setProperty('--sa-accent', cfg.AccentColor || '#00a4dc');
+        // Sizing goes through CSS custom properties so the per-mode rules
+        // (fullscreen / center banner) can override them. Setting them as inline
+        // styles on the card would always win and every mode would look "modal".
+        overlay.style.setProperty('--sa-max-w', (cfg.MaxWidthPx || 900) + 'px');
+        overlay.style.setProperty('--sa-max-h', (cfg.MaxHeightPx || 700) + 'px');
+        overlay.style.setProperty('--sa-radius', (cfg.BorderRadiusPx != null ? cfg.BorderRadiusPx : 14) + 'px');
         overlay.__saCleanup = cleanup;
 
         var card = document.createElement('div');
         card.className = NS + '-card';
-        card.style.maxWidth = (cfg.MaxWidthPx || 900) + 'px';
-        card.style.maxHeight = (cfg.MaxHeightPx || 700) + 'px';
-        card.style.borderRadius = (cfg.BorderRadiusPx != null ? cfg.BorderRadiusPx : 14) + 'px';
         card.tabIndex = -1;
 
         if (ad.BackgroundUrl) {
@@ -278,17 +281,26 @@
         var videoEl = null;
         var type = String(ad.Type || 'Image');
 
+        var wantMuted = cfg.MutedVideo !== false;
         if ((type === 'Video' || type === 'Multimedia') && ad.MediaUrl && looksVideo(ad)) {
             videoEl = document.createElement('video');
             videoEl.className = NS + '-video';
-            videoEl.src = mediaUrl(api, ad.MediaUrl);
-            videoEl.style.objectFit = ad.ObjectFit || 'contain';
+            // Muting must be set BEFORE src/insertion, and via the attribute +
+            // defaultMuted, or Chrome/Safari ignore it for the autoplay decision.
+            if (wantMuted) {
+                videoEl.muted = true;
+                videoEl.defaultMuted = true;
+                videoEl.setAttribute('muted', '');
+            }
             videoEl.playsInline = true;
-            videoEl.autoplay = cfg.AutoplayVideo !== false;
-            videoEl.muted = cfg.MutedVideo !== false;
+            videoEl.setAttribute('playsinline', '');
             videoEl.loop = !!cfg.LoopVideo;
             videoEl.controls = !!cfg.ShowVideoControls;
             videoEl.preload = 'auto';
+            videoEl.style.objectFit = ad.ObjectFit || 'contain';
+            videoEl.autoplay = cfg.AutoplayVideo !== false;
+            if (cfg.AutoplayVideo !== false) { videoEl.setAttribute('autoplay', ''); }
+            videoEl.src = mediaUrl(api, ad.MediaUrl);
             mediaWrap.appendChild(videoEl);
         } else if ((type === 'Image' || type === 'Multimedia') && ad.MediaUrl) {
             var img = document.createElement('img');
@@ -390,13 +402,12 @@
 
         function renderFooter() {
             var elapsed = (Date.now() - startTs) / 1000;
+            // The countdown reflects the AD DURATION (10 -> 0), not "seconds until skip".
             var remaining = Math.max(0, Math.ceil(totalDuration - elapsed));
+            var showCountdown = ad.ShowCountdown && cfg.ShowCountdown;
             var canSkip = allowSkip && elapsed >= skipAfter;
 
-            if (!allowSkip) {
-                skipBtn.hidden = true;
-                return;
-            }
+            skipBtn.classList.remove(NS + '-ready');
 
             if (canSkip) {
                 skipBtn.hidden = false;
@@ -406,20 +417,27 @@
                 return;
             }
 
-            if (cfg.SkipButtonMode === 'AppearsAfterCountdown') {
-                skipBtn.hidden = true;
+            // Cannot skip yet (or skipping disabled for this ad).
+            var appearsMode = allowSkip && cfg.SkipButtonMode === 'AppearsAfterCountdown';
+
+            if (!allowSkip || appearsMode) {
+                // No usable button right now. Show a bare countdown if enabled, else nothing.
+                if (showCountdown) {
+                    skipBtn.hidden = false;
+                    skipBtn.disabled = true;
+                    skipBtn.textContent = t(cfg, 'skipIn') + ' ' + remaining;
+                } else {
+                    skipBtn.hidden = true;
+                }
                 return;
             }
 
-            // DisabledUntilCountdown
+            // allowSkip && DisabledUntilCountdown && not skippable yet.
             skipBtn.hidden = false;
             skipBtn.disabled = true;
-            skipBtn.classList.remove(NS + '-ready');
-            var secs = Math.max(0, Math.ceil(skipAfter - elapsed));
-            skipBtn.textContent = (ad.ShowCountdown && cfg.ShowCountdown)
-                ? t(cfg, 'skipIn') + ' ' + secs
+            skipBtn.textContent = showCountdown
+                ? t(cfg, 'skipIn') + ' ' + remaining
                 : t(cfg, 'skip');
-            void remaining;
         }
 
         skipBtn.addEventListener('click', function () {
@@ -470,8 +488,16 @@
                 var pr = videoEl.play();
                 if (pr && pr.catch) {
                     pr.catch(function () {
-                        videoEl.muted = true;
-                        videoEl.play().catch(function () { log('video autoplay blocked'); });
+                        if (wantMuted) {
+                            // Should not happen (already muted) - retry once.
+                            videoEl.muted = true;
+                            videoEl.play().catch(function () { log('video autoplay blocked'); });
+                        } else {
+                            // The admin asked for sound but the browser blocks unmuted
+                            // autoplay. Expose controls so the user can start it.
+                            videoEl.controls = true;
+                            log('unmuted autoplay blocked by the browser; showing controls');
+                        }
                     });
                 }
             }

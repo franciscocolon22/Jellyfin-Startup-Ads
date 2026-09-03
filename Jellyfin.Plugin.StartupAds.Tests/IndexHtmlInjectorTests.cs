@@ -10,10 +10,11 @@ namespace Jellyfin.Plugin.StartupAds.Tests
         {
             var html = "<html><head></head><body><div id=\"app\"></div></body></html>";
             var result = IndexHtmlInjector.Inject(html);
+            var tag = IndexHtmlInjector.ScriptTag();
 
-            Assert.Contains(IndexHtmlInjector.ScriptTag, result);
+            Assert.Contains(tag, result);
             Assert.EndsWith("</script></body></html>", result);
-            Assert.Equal(html.Length + IndexHtmlInjector.ScriptTag.Length, result.Length);
+            Assert.Equal(html.Length + tag.Length, result.Length);
         }
 
         [Fact]
@@ -29,7 +30,7 @@ namespace Jellyfin.Plugin.StartupAds.Tests
         public void AppendsWhenNoBodyTag()
         {
             var result = IndexHtmlInjector.Inject("<html>no body close</html>");
-            Assert.EndsWith(IndexHtmlInjector.ScriptTag, result);
+            Assert.EndsWith(IndexHtmlInjector.ScriptTag(), result);
         }
 
         [Theory]
@@ -41,10 +42,22 @@ namespace Jellyfin.Plugin.StartupAds.Tests
         }
 
         [Fact]
-        public void UsesRelativeScriptSrcSoItWorksUnderAnyBasePath()
+        public void ScriptSrcIsAbsoluteFromSiteRoot()
         {
-            Assert.Contains("src=\"StartupAds/ClientScript\"", IndexHtmlInjector.ScriptTag);
-            Assert.DoesNotContain("src=\"/", IndexHtmlInjector.ScriptTag);
+            // jellyfin-web is served under /web but the plugin API is at the root, so a relative
+            // src would resolve to /web/StartupAds/ClientScript and 404.
+            Assert.Contains("src=\"/StartupAds/ClientScript\"", IndexHtmlInjector.ScriptTag());
+        }
+
+        [Theory]
+        [InlineData("", "src=\"/StartupAds/ClientScript\"")]
+        [InlineData("/jellyfin", "src=\"/jellyfin/StartupAds/ClientScript\"")]
+        [InlineData("jellyfin", "src=\"/jellyfin/StartupAds/ClientScript\"")]
+        [InlineData("/media/jf/", "src=\"/media/jf/StartupAds/ClientScript\"")]
+        public void ReverseProxyPrefixIsHonoured(string prefix, string expected)
+        {
+            Assert.Contains(expected, IndexHtmlInjector.ScriptTag(prefix));
+            Assert.Contains(expected, IndexHtmlInjector.Inject("<body></body>", prefix));
         }
 
         private static int CountOccurrences(string haystack, string needle)

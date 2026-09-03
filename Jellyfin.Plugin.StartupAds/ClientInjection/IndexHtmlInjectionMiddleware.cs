@@ -37,7 +37,7 @@ namespace Jellyfin.Plugin.StartupAds.ClientInjection
 
         public async Task Invoke(HttpContext context)
         {
-            if (!ShouldConsider(context))
+            if (!TryGetPathPrefix(context, out var pathPrefix))
             {
                 await _next(context).ConfigureAwait(false);
                 return;
@@ -69,7 +69,7 @@ namespace Jellyfin.Plugin.StartupAds.ClientInjection
                 }
 
                 var html = await new StreamReader(buffer, Encoding.UTF8).ReadToEndAsync().ConfigureAwait(false);
-                var patched = Config.InjectClientScript ? IndexHtmlInjector.Inject(html) : html;
+                var patched = Config.InjectClientScript ? IndexHtmlInjector.Inject(html, pathPrefix) : html;
 
                 var bytes = Encoding.UTF8.GetBytes(patched);
                 context.Response.Body = originalBody;
@@ -105,26 +105,58 @@ namespace Jellyfin.Plugin.StartupAds.ClientInjection
             }
         }
 
-        private static bool ShouldConsider(HttpContext context)
+        /// <summary>
+        /// True when the request targets jellyfin-web's <c>index.html</c>. Also yields
+        /// <paramref name="pathPrefix"/> — any base-URL / reverse-proxy prefix in front of
+        /// <c>/web</c> (e.g. <c>"/jellyfin"</c>, or <c>""</c> for a root install). This middleware
+        /// runs before Jellyfin's <c>app.Map(BaseUrl, …)</c>, so <c>Request.PathBase</c> is not yet
+        /// populated and the prefix must be read from <c>Request.Path</c> itself.
+        /// </summary>
+        private static bool TryGetPathPrefix(HttpContext context, out string pathPrefix)
         {
+            pathPrefix = string.Empty;
+
             if (!HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method))
             {
                 return false;
             }
 
-            var path = context.Request.Path.Value ?? string.Empty;
-            var basePath = Config.WebBasePath;
-            if (string.IsNullOrWhiteSpace(basePath))
+            var webSeg = Config.WebBasePath;
+            webSeg = "/" + (string.IsNullOrWhiteSpace(webSeg) ? "web" : webSeg.Trim('/'));
+
+            var basePath = context.Request.PathBase.Value ?? string.Empty;
+            var path = (context.Request.Path.Value ?? string.Empty).TrimEnd();
+            var cmp = StringComparison.OrdinalIgnoreCase;
+
+            string proxyPrefix;
+            if (path.Equals("/", StringComparison.Ordinal))
             {
-                basePath = "/web";
+                // Root -> Jellyfin redirects to /web/; prefix is whatever PathBase holds.
+                proxyPrefix = string.Empty;
+            }
+            else if (path.Equals("/index.html", cmp))
+            {
+                proxyPrefix = string.Empty;
+            }
+            else if (path.EndsWith(webSeg + "/index.html", cmp))
+            {
+                proxyPrefix = path[..^(webSeg.Length + "/index.html".Length)];
+            }
+            else if (path.EndsWith(webSeg + "/", cmp))
+            {
+                proxyPrefix = path[..^(webSeg.Length + 1)];
+            }
+            else if (path.EndsWith(webSeg, cmp))
+            {
+                proxyPrefix = path[..^webSeg.Length];
+            }
+            else
+            {
+                return false;
             }
 
-            basePath = "/" + basePath.Trim('/');
-
-            return path.EndsWith("/index.html", StringComparison.OrdinalIgnoreCase)
-                   || path.Equals(basePath, StringComparison.OrdinalIgnoreCase)
-                   || path.Equals(basePath + "/", StringComparison.OrdinalIgnoreCase)
-                   || path == "/";
+            pathPrefix = string.IsNullOrEmpty(basePath) ? proxyPrefix : basePath;
+            return true;
         }
     }
 }

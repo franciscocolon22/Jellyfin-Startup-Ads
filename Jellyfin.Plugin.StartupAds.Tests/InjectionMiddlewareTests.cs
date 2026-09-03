@@ -49,6 +49,16 @@ namespace Jellyfin.Plugin.StartupAds.Tests
 
             Assert.Contains(IndexHtmlInjector.Marker, body);
             Assert.Contains("</script></body>", body);
+            // Must be an absolute src (relative would 404 as /web/StartupAds/ClientScript).
+            Assert.Contains("src=\"/StartupAds/ClientScript\"", body);
+        }
+
+        [Fact]
+        public async Task HonoursReverseProxyPrefixInPath()
+        {
+            using var server = BuildServer("text/html", Html);
+            var body = await server.CreateClient().GetStringAsync("/jellyfin/web/index.html");
+            Assert.Contains("src=\"/jellyfin/StartupAds/ClientScript\"", body);
         }
 
         [Fact]

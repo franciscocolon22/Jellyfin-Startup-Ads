@@ -376,18 +376,23 @@
         requestAnimationFrame(function () { overlay.classList.add(NS + '-show'); });
         trackOnce('impression');
 
-        /* ---- countdown / skip state machine ---- */
+        /* ---- countdown / skip state machine ----
+           There is ONE per-ad time: SkipAfterSeconds. The countdown shows it (N -> 0).
+           At 0: if skipping is allowed the "Omitir" button turns active and the overlay
+           waits for the user; if not, the overlay closes. (For a video set to "duración
+           del vídeo", the countdown is the video length instead.) */
         var allowSkip = !!ad.AllowSkip;
-        var skipAfter = Math.max(0, ad.SkipAfterSeconds || 0);
-        var manualDuration = Math.max(1, ad.DurationSeconds || cfg.DefaultDurationSeconds || 10);
-        var totalDuration = manualDuration;
+        var skipAfter = Math.max(1, ad.SkipAfterSeconds || cfg.DefaultDurationSeconds || 10);
+        var totalDuration = skipAfter;
         var startTs = Date.now();
         var tickTimer = null;
         var endTimer = null;
+        var safetyTimer = null;
 
         function clearTimers() {
             if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
             if (endTimer) { clearTimeout(endTimer); endTimer = null; }
+            if (safetyTimer) { clearTimeout(safetyTimer); safetyTimer = null; }
         }
         cleanupFns.push(clearTimers);
         cleanupFns.push(function () {
@@ -459,6 +464,12 @@
             renderFooter();
             tickTimer = setInterval(renderFooter, 250);
             endTimer = setTimeout(function () { finishByDuration('duration-elapsed'); }, totalDuration * 1000);
+            // A skippable ad waits for the user after the countdown. Safety net so it can
+            // never block Jellyfin forever if the user walks away.
+            if (allowSkip) {
+                safetyTimer = setTimeout(function () { cleanup('safety-timeout'); },
+                    (totalDuration + 300) * 1000);
+            }
         }
 
         if (videoEl && ad.UseVideoDuration) {

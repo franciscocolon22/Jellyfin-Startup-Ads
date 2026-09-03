@@ -384,10 +384,12 @@ namespace Jellyfin.Plugin.StartupAds.Api
                     ? null
                     : $"StartupAds/Media/{ad.Id}/Background",
                 ObjectFit = ad.ObjectFit == "cover" ? "cover" : "contain",
-                DurationSeconds = ad.DurationSeconds > 0 ? ad.DurationSeconds : cfg.DefaultDurationSeconds,
-                UseVideoDuration = ad.Type == AdvertisementType.Video && ad.DurationMode == AdDurationMode.FromVideo,
+                // The ad's countdown IS "SkipAfterSeconds"; there is no separate duration field.
+                DurationSeconds = ad.SkipAfterSeconds > 0 ? ad.SkipAfterSeconds : cfg.DefaultDurationSeconds,
+                UseVideoDuration = (ad.Type == AdvertisementType.Video || ad.Type == AdvertisementType.Multimedia)
+                                   && ad.DurationMode == AdDurationMode.FromVideo,
                 AllowSkip = ad.AllowSkip && cfg.AllowSkip,
-                SkipAfterSeconds = Math.Max(0, ad.SkipAfterSeconds),
+                SkipAfterSeconds = ad.SkipAfterSeconds > 0 ? ad.SkipAfterSeconds : cfg.DefaultDurationSeconds,
                 ShowCountdown = ad.ShowCountdown && cfg.ShowCountdown,
                 ButtonText = ad.ButtonText ?? string.Empty,
                 ButtonAction = ad.ButtonAction.ToString(),

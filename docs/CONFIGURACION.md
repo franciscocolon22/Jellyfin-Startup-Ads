@@ -1,6 +1,6 @@
 # Jellyfin Startup Ads — Guía de configuración y funcionamiento
 
-> Aplica a la versión **1.3.2** del plugin · Jellyfin **10.11.11** · .NET **9**
+> Aplica a la versión **1.3.3** del plugin · Jellyfin **10.11.11** · .NET **9**
 
 Este documento explica, campo por campo, **para qué sirve cada opción**, **qué valor
 tiene por defecto** y, sobre todo, **qué ocurre en tiempo de ejecución cuando la
@@ -192,7 +192,7 @@ Resultado: **cero fugas** de nodos, *timers* o *listeners*; Jellyfin queda 100 %
 | **Orden** (`OrderMode`) | `Priority` · `Name` · `Random` · `Manual` | Cómo se ordena la cola de anuncios elegibles (ver §6). En **Priority**, *número mayor = se muestra primero*. |
 | **Frecuencia** (`FrequencyMode`) | `OncePerSession` · `EveryStartup` | **Una vez por sesión**: se muestra una sola vez por pestaña/usuario (clave en `sessionStorage`); cerrar la pestaña "reinicia" la sesión. **En cada inicio**: se muestra en **cada** carga completa de la página. |
 | **Modo de visualización** (`DisplayMode`) | `Modal` · `Fullscreen` · `CenterBanner` | Tamaño/forma del overlay: **Modal** (tarjeta centrada, por defecto), **Pantalla completa** (ocupa todo el *viewport*), **Banner central** (tarjeta más baja). |
-| **Duración predeterminada** (`DefaultDurationSeconds`) | `10` (1–600) | Segundos que dura un anuncio **si el propio anuncio no especifica una duración** propia. |
+| **Tiempo predeterminado del anuncio** (`DefaultDurationSeconds`) | `10` (1–600) | Valor con el que se rellena **«Permitir omitir después de»** al **crear** un anuncio nuevo (y para los que genera *Escanear*). |
 | **Máximo de anuncios por inicio** (`MaxAdsPerStartup`) | `1` (1–20) | Cuántos anuncios como máximo se muestran seguidos en una misma apertura. Con `3`, se muestran hasta 3 en cola. |
 | **Mostrar un único anuncio aleatorio** (`RandomPick`) | ⬜ | Si está activo y hay más de un anuncio elegible, se **elige uno al azar** y se ignora `MaxAdsPerStartup`. |
 
@@ -273,16 +273,18 @@ el servidor**.
 
 ### 5.3 Configuración
 
+> **Desde v1.3.3 hay UN solo número de tiempo por anuncio: «Permitir omitir después de
+> (segundos)».** Es la cuenta regresiva del anuncio. Ya no existe un campo «Duración».
+
 | Campo | Por defecto | Efecto en runtime |
 |---|---|---|
-| **Duración** (`DurationMode`) | `Manual` | **Configurada manualmente** = usa `DurationSeconds`. **Duración del vídeo** = espera a `loadedmetadata` y usa la duración real del vídeo; si el vídeo falla, cae a `DurationSeconds`. |
-| **Duración (segundos)** (`DurationSeconds`) | `10` (1–600) | Cuánto dura el anuncio. Si es `0` o no se pone, se usa la **duración predeterminada** global. |
+| **Cuenta regresiva** (`DurationMode`, solo vídeo/multimedia) | `Fija` | **Fija** = la cuenta usa los segundos de «Permitir omitir después de». **La duración del vídeo** = espera a `loadedmetadata` y usa la duración real del vídeo; si el vídeo falla, cae a los segundos fijos. |
+| **Permitir omitir después de (segundos)** (`SkipAfterSeconds`) | «Tiempo predeterminado del anuncio» (10) | **La cuenta regresiva del anuncio**: se ve `Omitir en N` y baja de N a 0. Al llegar a 0: si «Permitir omitir» está activo, el botón *Omitir* se habilita y el overlay **espera** al usuario; si no, el overlay **se cierra**. |
 | **Prioridad** (`Priority`) | `5` (0–1000) | Solo cuenta si el **Orden** global es `Priority`. **Número mayor = se muestra antes.** |
 | **Orden manual** (`Order`) | `0` | Solo cuenta si el **Orden** global es `Manual` (ascendente). También desempata en `Priority`. |
 | **Activo** (`Enabled`) | ✅ (nuevos) | Si está desactivado, el anuncio **nunca** se selecciona. |
 | **Mostrar al iniciar** (`ShowOnStartup`) | ✅ | Si se desactiva, este anuncio no entra en el arranque (pero sigue "activo" para vista previa/edición). |
 | **Permitir omitir este anuncio** (`AllowSkip`) | ✅ | Sobrescribe el valor global para este anuncio. |
-| **Permitir omitir después de** (`SkipAfterSeconds`) | `5` | Sobrescribe el valor global. |
 | **Mostrar contador en este anuncio** (`ShowCountdown`) | ✅ | Sobrescribe el valor global. |
 
 > El valor efectivo de *Omitir* es `AllowSkip` del anuncio **Y** `AllowSkip` global
@@ -353,26 +355,26 @@ otro** (cada uno con su cuenta regresiva; al terminar/omitir uno, empieza el sig
 
 ## 7. La cuenta regresiva y el botón «Omitir», paso a paso
 
-Al mostrarse un anuncio se calcula:
+Al mostrarse un anuncio se calcula (v1.3.3):
 
 - `permitirOmitir` = `AllowSkip` del anuncio **y** global
-- `omitirTras` = `SkipAfterSeconds` (segundos desde el inicio hasta que *Omitir* funciona)
-- `duracionTotal` = duración del vídeo (si `Duración = del vídeo`) **o** `DurationSeconds`
-  (o la duración predeterminada global)
-- `restante` = `duracionTotal − transcurrido`  ← **esto es lo que muestra la cuenta regresiva**
-  (empieza en `duracionTotal` y baja a 0; **no** empieza en `SkipAfterSeconds`)
+- `N` = **«Permitir omitir después de (segundos)»** del anuncio (para un vídeo con
+  «Cuenta regresiva = la duración del vídeo», `N` = la duración real del vídeo)
+- `restante` = `N − transcurrido`  ← **esto es lo que muestra la cuenta regresiva** (`N → 0`)
 
 Cada **250 ms** se refresca el pie según este cuadro:
 
 | Situación | `SkipButtonMode = DisabledUntilCountdown` | `SkipButtonMode = AppearsAfterCountdown` |
 |---|---|---|
-| `permitirOmitir = false` | si el contador está activo: texto **`Omitir en {restante}`** deshabilitado; si no, nada. El anuncio se cierra solo al llegar `restante = 0` | igual |
-| `transcurrido < omitirTras` | botón **visible y deshabilitado**: `Omitir en {restante}` (o solo `Omitir` si el contador está apagado) | **oculto** (o texto `Omitir en {restante}` si el contador está activo) |
-| `transcurrido ≥ omitirTras` | botón **habilitado**: `Omitir` (color de acento) | botón **aparece habilitado**: `Omitir` |
+| `transcurrido < N` (cuenta en marcha) | botón **visible y deshabilitado**: `Omitir en {restante}` (o solo `Omitir` si el contador está apagado) | **oculto** (o texto `Omitir en {restante}` si el contador está activo) |
+| `transcurrido ≥ N` **y** `permitirOmitir` | botón **habilitado**: `Omitir` (color de acento) | botón **aparece habilitado**: `Omitir`. El overlay **espera** al usuario. |
+| `transcurrido ≥ N` **y no** `permitirOmitir` | el overlay **se cierra** automáticamente | igual |
 
-> Ejemplo: `Duración = 10`, `Permitir omitir después de = 5` → se ve `Omitir en 10, 9, 8, 7, 6`
-> y en ese punto el botón pasa a `Omitir` (clicable). Si quieres que la cuenta llegue a 1 antes
-> de poder omitir, pon `Permitir omitir después de` ≥ `Duración`.
+> Ejemplo: «Permitir omitir después de» = **10** → se ve `Omitir en 10, 9, 8 … 1` y al llegar
+> a 0 el botón `Omitir` se activa (o el anuncio se cierra si «Permitir omitir» está desactivado).
+>
+> Un anuncio con *Omitir* activo que el usuario deja abierto se cierra solo por seguridad
+> a los `N + 300` segundos.
 
 Eventos:
 
@@ -468,7 +470,7 @@ normal solo puede **recibir** anuncios, nunca modificarlos.
 ## 12. Preguntas frecuentes de comportamiento
 
 **Acabo de abrir Jellyfin y no salió nada.**
-Comprueba, por orden: (1) que tienes la **v1.3.2** instalada y reiniciaste Jellyfin;
+Comprueba, por orden: (1) que tienes la **v1.3.3** instalada y reiniciaste Jellyfin;
 (2) `Ctrl+Shift+R` en el navegador; (3) F12 → Network: `StartupAds/ClientScript` = 200 y
 `StartupAds/Config` = 200 con `"Ads":[…]`; (4) que hay **al menos un anuncio activo**
 (créalo o pulsa *Escanear*) y que la **ruta valida OK**; (5) que el anuncio está en
@@ -485,6 +487,17 @@ Correcto: al cambiar de usuario se reevalúa con la configuración del nuevo usu
 **Puse un vídeo pero arranca en pausa / sin sonido.**
 Los navegadores solo permiten *autoplay* **sin sonido**. Deja **Reproducir sin sonido**
 activado. Con sonido, el usuario tendría que darle a play.
+
+**«Escanear» dice `0, 0, 0` aunque tengo archivos.**
+Bug corregido en **v1.3.3**. Si ya importaste antes, es normal que diga `0 importados`
+(ya existen); crea un archivo nuevo o mira la tabla de anuncios.
+
+**«Modo de anuncios»: Manual me muestra los que venían de Escanear.**
+El filtro es correcto (`Manual` = creados a mano, `Automatic` = de *Escanear*). Si un
+anuncio de *Escanear* aparece como **Manual** en la columna «Origen», es porque lo
+editaste con una versión ≤ 1.3.1 (que perdía la etiqueta). En **v1.3.3**, pulsar
+**«Escanear e importar»** los **re-clasifica** solo (si su nombre sigue siendo el del
+archivo). Lo más simple: deja el modo en **Mixto** (por defecto), que muestra todos.
 
 **Borré un archivo de la carpeta.**
 El anuncio automático correspondiente desaparece la próxima vez que pulses *Escanear*.

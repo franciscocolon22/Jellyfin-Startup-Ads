@@ -87,8 +87,9 @@
                 </div>
 
                 <div class="inputContainer">
-                    <label class="inputLabel inputLabelUnfocused" for="saDefaultDuration">Duración predeterminada (segundos)</label>
+                    <label class="inputLabel inputLabelUnfocused" for="saDefaultDuration">Tiempo predeterminado del anuncio (segundos)</label>
                     <input is="emby-input" type="number" id="saDefaultDuration" min="1" max="600" />
+                    <div class="fieldDescription">Valor con el que se rellena «Permitir omitir después de» al crear un anuncio nuevo.</div>
                 </div>
                 <div class="inputContainer">
                     <label class="inputLabel inputLabelUnfocused" for="saMaxAds">Máximo de anuncios por inicio</label>
@@ -270,15 +271,19 @@
                         <div class="saSection">
                             <h3>Configuración</h3>
                             <div class="selectContainer" id="rowDurationMode">
-                                <label class="selectLabel" for="adDurationMode">Duración</label>
+                                <label class="selectLabel" for="adDurationMode">Cuenta regresiva</label>
                                 <select is="emby-select" id="adDurationMode">
-                                    <option value="Manual">Configurada manualmente</option>
-                                    <option value="FromVideo">Duración del vídeo</option>
+                                    <option value="Manual">Fija (los segundos indicados abajo)</option>
+                                    <option value="FromVideo">La duración del vídeo</option>
                                 </select>
                             </div>
                             <div class="inputContainer">
-                                <label class="inputLabel inputLabelUnfocused" for="adDuration">Duración (segundos)</label>
-                                <input is="emby-input" type="number" id="adDuration" min="1" max="600" />
+                                <label class="inputLabel inputLabelUnfocused" for="adSkipAfter">Permitir omitir después de (segundos)</label>
+                                <input is="emby-input" type="number" id="adSkipAfter" min="1" max="600" />
+                                <div class="fieldDescription">
+                                    Es la cuenta regresiva del anuncio. Si «Permitir omitir» está activo, el botón
+                                    <b>Omitir</b> se habilita al llegar a 0; si no, el anuncio se cierra solo.
+                                </div>
                             </div>
                             <div class="inputContainer">
                                 <label class="inputLabel inputLabelUnfocused" for="adPriority">Prioridad (0 - 1000, mayor = primero)</label>
@@ -296,10 +301,6 @@
                             </div>
                             <div class="checkboxContainer">
                                 <label><input is="emby-checkbox" type="checkbox" id="adAllowSkip" /><span>Permitir omitir este anuncio</span></label>
-                            </div>
-                            <div class="inputContainer">
-                                <label class="inputLabel inputLabelUnfocused" for="adSkipAfter">Permitir omitir después de (segundos)</label>
-                                <input is="emby-input" type="number" id="adSkipAfter" min="0" max="600" />
                             </div>
                             <div class="checkboxContainer">
                                 <label><input is="emby-checkbox" type="checkbox" id="adShowCountdown" /><span>Mostrar contador en este anuncio</span></label>
@@ -463,21 +464,29 @@
                         && window.ServerConnections.currentApiClient());
             }
 
-            /* All requests go through ApiClient.ajax so Jellyfin builds the correct
-               Authorization header (works whether or not legacy auth is enabled). */
+            /* Raw fetch with the modern Authorization header (always accepted by Jellyfin
+               10.11, unlike X-Emby-Token). The body is ALWAYS read and JSON-parsed —
+               ApiClient.ajax without dataType:'json' returns a Response object for POSTs,
+               which was making "Escanear" report 0/0 and ValidatePath show nothing. */
             function req(method, path, body) {
                 var api = apiClient();
-                var opts = { type: method, url: api.getUrl('StartupAds/' + path) };
+                var headers = { 'Authorization': 'MediaBrowser Token="' + api.accessToken() + '"' };
+                var opts = { method: method, headers: headers };
                 if (body !== undefined) {
-                    opts.data = JSON.stringify(body);
-                    opts.contentType = 'application/json';
+                    opts.body = JSON.stringify(body);
+                    headers['Content-Type'] = 'application/json';
                 }
-                if (method === 'GET') { opts.dataType = 'json'; }
-                return api.ajax(opts).then(function (res) {
-                    if (typeof res === 'string' && res.length) {
-                        try { return JSON.parse(res); } catch (e) { return res; }
+                return fetch(api.getUrl('StartupAds/' + path), opts).then(function (r) {
+                    if (!r.ok) {
+                        return r.text().then(function (txt) {
+                            throw new Error(txt || ('HTTP ' + r.status));
+                        });
                     }
-                    return res;
+                    if (r.status === 204) { return null; }
+                    return r.text().then(function (txt) {
+                        if (!txt) { return null; }
+                        try { return JSON.parse(txt); } catch (e) { return txt; }
+                    });
                 });
             }
 
@@ -490,7 +499,7 @@
             }
 
             /* ---------------------------------------------------------------- */
-            var state = { view: null, modal: null, files: [], users: [], lastFocus: null };
+            var state = { view: null, modal: null, files: [], users: [], lastFocus: null, defaultDuration: 10 };
 
             function q(root, id) { return root.querySelector('#' + id); }
             function val(id) { var e = q(state.modalScope(id), id); return e ? e.value : ''; }
@@ -518,6 +527,7 @@
                     setVal('saFrequencyMode', c.FrequencyMode);
                     setVal('saDisplayMode', c.DisplayMode);
                     setVal('saDefaultDuration', c.DefaultDurationSeconds);
+                    state.defaultDuration = c.DefaultDurationSeconds || 10;
                     setVal('saMaxAds', c.MaxAdsPerStartup);
                     setChk('saRandomPick', c.RandomPick);
                     setChk('saShowCountdown', c.ShowCountdown);
@@ -583,7 +593,8 @@
                 Dashboard.showLoadingMsg();
                 req('POST', 'Admin/Scan').then(function (r) {
                     Dashboard.hideLoadingMsg();
-                    Dashboard.alert('Escaneo: importados ' + (r.Imported || 0) + ', eliminados ' + (r.RemovedMissing || 0) + '.');
+                    Dashboard.alert('Escaneo: ' + (r.Imported || 0) + ' importados, ' +
+                        (r.RemovedMissing || 0) + ' eliminados, ' + (r.Retagged || 0) + ' re-clasificados.');
                     loadFiles().then(loadAds);
                 }).catch(function (err) {
                     Dashboard.hideLoadingMsg();
@@ -748,13 +759,14 @@
                 fillFileSelect('adBackgroundFile', ad.BackgroundFile || '');
                 setVal('adObjectFit', ad.ObjectFit || 'contain');
                 setVal('adDurationMode', ad.DurationMode || 'Manual');
-                setVal('adDuration', ad.DurationSeconds || 10);
                 setVal('adPriority', ad.Priority == null ? 5 : ad.Priority);
                 setVal('adOrder', ad.Order || 0);
                 setChk('adEnabled', ad.Id ? ad.Enabled : true);
                 setChk('adShowOnStartup', ad.Id ? ad.ShowOnStartup : true);
                 setChk('adAllowSkip', ad.Id ? ad.AllowSkip : true);
-                setVal('adSkipAfter', ad.SkipAfterSeconds == null ? 5 : ad.SkipAfterSeconds);
+                // New ads default their countdown to the global "tiempo predeterminado".
+                setVal('adSkipAfter',
+                    ad.Id ? (ad.SkipAfterSeconds || 5) : (state.defaultDuration || 10));
                 setChk('adShowCountdown', ad.Id ? ad.ShowCountdown : true);
                 setVal('adButtonText', ad.ButtonText || '');
                 setVal('adButtonAction', ad.ButtonAction || 'None');
@@ -809,10 +821,8 @@
                 if ((type === 'Image' || type === 'Video') && !val('adMediaFile')) {
                     return 'Los anuncios de imagen o vídeo requieren un archivo.';
                 }
-                var dur = num('adDuration');
-                if (dur < 1 || dur > 600) { return 'La duración debe estar entre 1 y 600 segundos.'; }
                 var skip = num('adSkipAfter');
-                if (skip < 0 || skip > 600) { return '«Permitir omitir después de» debe estar entre 0 y 600.'; }
+                if (skip < 1 || skip > 600) { return '«Permitir omitir después de» debe estar entre 1 y 600 segundos.'; }
                 var prio = num('adPriority');
                 if (prio < 0 || prio > 1000) { return 'La prioridad debe estar entre 0 y 1000.'; }
                 var action = val('adButtonAction');
@@ -844,7 +854,9 @@
                     BackgroundFile: val('adBackgroundFile'),
                     ObjectFit: val('adObjectFit'),
                     DurationMode: val('adDurationMode'),
-                    DurationSeconds: num('adDuration'),
+                    // "Duración (segundos)" se eliminó del formulario: la cuenta regresiva
+                    // del anuncio ES «Permitir omitir después de».
+                    DurationSeconds: Math.max(1, num('adSkipAfter')),
                     Priority: num('adPriority'),
                     Order: num('adOrder'),
                     Enabled: chk('adEnabled'),

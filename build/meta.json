@@ -1,14 +1,14 @@
 {
     "category": "General",
-    "changelog": "v1.3.2 — Correcciones tras pruebas del usuario: (1) el 'Modo de visualización' (Pantalla completa / Banner central) ahora sí se aplica — el tamaño va por variables CSS y no por estilos en línea que ganaban siempre; (2) la cuenta regresiva cuenta desde la DURACIÓN del anuncio (10→0), no desde 'segundos hasta poder omitir'; (3) 'Reproducir sin sonido' se fuerza vía atributo muted + defaultMuted para que el navegador lo respete; (4) 'Modo de anuncios' (Manual/Automático) — al editar un anuncio ya no se pierde su origen, y se añade la columna 'Origen' en la tabla; (5) el editor de anuncios ahora muestra solo los campos del tipo elegido (Imagen/Vídeo/Texto/Multimedia) y filtra el desplegable de archivos por tipo; (6) Plugin.cs vuelve al constructor estándar de 2 parámetros y el enlace aparece en el menú lateral (EnableInMainMenu). Incluye v1.3.1 (script absoluto), v1.3.0 (auth 500 + modal), v1.2.0 (inyección en memoria), v1.1.0 (seguridad).",
+    "changelog": "v1.3.3 — (1) «Escanear e importar» devolvía siempre '0, 0' aunque importara: el JS no parseaba el cuerpo JSON de las peticiones POST (ApiClient.ajax sin dataType). Reescrito para leer y parsear siempre la respuesta (también arregla el resultado de «Validar ruta»). (2) Se elimina el campo «Duración (segundos)» del editor de anuncios; la cuenta regresiva del anuncio ES «Permitir omitir después de (segundos)» — cuenta desde ese valor hasta 0 y entonces se habilita «Omitir» (o se cierra si no se permite omitir). Los anuncios nuevos toman ese valor del «Tiempo predeterminado del anuncio». (3) «Modo de anuncios»: además de conservar el Origen al editar (v1.3.2), «Escanear» ahora **re-clasifica** como automáticos los anuncios cuyo nombre sigue siendo el del archivo (auto-reparación de datos de versiones antiguas). Log de diagnóstico del filtro. Incluye v1.3.2/v1.3.1/v1.3.0/v1.2.0/v1.1.0.",
     "description": "Muestra automáticamente anuncios multimedia (imagen, vídeo o texto) al abrir Jellyfin Web, administrables desde el Dashboard: countdown, omitir, programación, segmentación por usuario, prioridades, aleatorio, botones, estadísticas y directorio externo configurable.",
     "guid": "6d1a9b6e-6b3e-4f9a-9c2d-3a7f1e2c4b90",
     "name": "Jellyfin Startup Ads",
     "overview": "Anuncios multimedia al iniciar Jellyfin Web.",
     "owner": "franciscocolon22",
     "targetAbi": "10.11.0.0",
-    "version": "1.3.2.0",
-    "timestamp": "2026-09-03T15:00:00Z",
+    "version": "1.3.3.0",
+    "timestamp": "2026-09-03T17:00:00Z",
     "status": "Active",
     "autoUpdate": true
 }

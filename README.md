@@ -12,12 +12,33 @@ desde el Dashboard, con controles de seguridad adecuados.
 |---|---|
 | Jellyfin | **10.11.11** (targetAbi `10.11.0.0`) |
 | .NET | **9.0** |
-| Versión del plugin | **1.4.2.0** |
+| Versión del plugin | **1.4.3.0** |
 | Paquetes | `Jellyfin.Controller` / `Jellyfin.Model` 10.11.11 (`ExcludeAssets=runtime`) |
 | Licencia | MIT |
 
 > 📖 **Guía completa de configuración y funcionamiento** (qué hace cada opción y qué
 > se ejecuta en runtime): [`docs/CONFIGURACION.md`](docs/CONFIGURACION.md)
+
+---
+
+## Novedad v1.4.3 — con «Modo Cine» activado: «No se encontró un medio válido para reproducir»
+
+Con «Modo Cine» ya encendido, este error al darle a Play **no es un fallo del plugin**:
+casi siempre significa que la **biblioteca que contiene la carpeta de vídeos del
+pre-roll no está habilitada para ese usuario**. Jellyfin pide el pre-roll, lo resuelve
+a un vídeo al que el usuario no tiene acceso, y **la reproducción entera falla** (no
+solo se salta el pre-roll).
+
+- **Solución:** Dashboard → **Usuarios** → (el usuario) → **Acceso a bibliotecas** →
+  habilita la biblioteca del pre-roll (o dale acceso a todas).
+- **Protección añadida:** desde v1.4.3 el plugin comprueba, antes de entregar un
+  pre-roll, que el usuario **puede verlo** (`Video.IsVisibleStandalone`) y que tiene una
+  fuente de medios reproducible. Si no, **lo omite** y la película/episodio se reproduce
+  con normalidad, en vez de fallar por completo — pero para que ese usuario **vea** el
+  pre-roll, sigue haciendo falta darle acceso a esa biblioteca.
+- El aviso del Dashboard (sección de pre-roll) explica ahora este mismo pasos.
+
+Detalle completo: [`docs/CONFIGURACION.md` §13.1.2](docs/CONFIGURACION.md#1312-con-modo-cine-activado-no-ha-sido-posible-encontrar-un-medio-válido-para-reproducir-v143).
 
 ---
 

@@ -1,14 +1,14 @@
 {
     "category": "General",
-    "changelog": "v1.4.2 — CORRECCIÓN: el botón «Crear anuncio» (y «Añadir pre-roll») ocupaba todo el ancho de la sección en vez del tamaño normal de los demás botones (le sobraba la clase CSS «block»); ya son del mismo tamaño que «Validar ruta» / «Escanear». GUÍA Y AVISO PARA «EL PRE-ROLL NO SE REPRODUCE»: la sección de pre-roll del Dashboard muestra ahora un aviso automático que confirma si el servidor está bien configurado (pre-roll activado + al menos un vídeo válido y activo); si ese aviso está en verde y aun así no suena nada, la causa es el ajuste de reproducción «Modo Cine» / «Cinema Mode», que es por usuario y por dispositivo (se explica dónde activarlo en Jellyfin Web y en Android/Android TV) — Jellyfin nunca pide el pre-roll a ningún proveedor si ese ajuste del cliente está apagado; esto no es un fallo del plugin. Incluye v1.4.1 (configuración en 3 bloques + carpeta de vídeos del pre-roll), v1.4.0 (segundo sistema de anuncios / IIntroProvider) y v1.3.4.",
-    "description": "Dos sistemas de anuncios independientes para Jellyfin, con la configuración separada en 3 bloques (General / Presentación / Pre-roll): (1) overlay multimedia al abrir Jellyfin Web y (2) pre-roll de vídeos de la biblioteca antes de cada película o episodio (apps nativas incluidas), con su propia carpeta de vídeos, validación, importación y diagnóstico de configuración.",
+    "changelog": "v1.4.3 — Con «Modo Cine»/«Cinema Mode» ya activado, algunos usuarios veían al darle a Play: «Error de reproducción: No ha sido posible encontrar un medio válido para reproducir». Causa: la biblioteca que contiene la carpeta de vídeos del pre-roll no estaba habilitada para ese usuario, así que Jellyfin resolvía el pre-roll a un vídeo sin fuente de medios reproducible y la reproducción entera fallaba (no solo el pre-roll). Solución para el administrador: Dashboard → Usuarios → (usuario) → Acceso a bibliotecas → habilitar la biblioteca del pre-roll. PROTECCIÓN AÑADIDA: antes de entregar un pre-roll, el plugin comprueba ahora que el usuario actual puede verlo (Video.IsVisibleStandalone) y que tiene al menos una fuente de medios; si no, omite ese pre-roll y el contenido solicitado se reproduce con normalidad, en vez de fallar por completo. Aviso y guía ampliados en la sección de pre-roll del Dashboard y en docs/CONFIGURACION.md §13.1.2. Incluye v1.4.2 (botón «Crear anuncio» corregido + guía de «Modo Cine»), v1.4.1 (configuración en 3 bloques + carpeta de vídeos del pre-roll) y v1.4.0 (segundo sistema de anuncios / IIntroProvider).",
+    "description": "Dos sistemas de anuncios independientes para Jellyfin, con la configuración separada en 3 bloques (General / Presentación / Pre-roll): (1) overlay multimedia al abrir Jellyfin Web y (2) pre-roll de vídeos de la biblioteca antes de cada película o episodio (apps nativas incluidas), con su propia carpeta de vídeos, validación, importación y protección automática de permisos de biblioteca.",
     "guid": "6d1a9b6e-6b3e-4f9a-9c2d-3a7f1e2c4b90",
     "name": "Jellyfin Startup Ads",
     "overview": "Anuncios al iniciar Jellyfin Web y pre-roll antes de cada vídeo.",
     "owner": "franciscocolon22",
     "targetAbi": "10.11.0.0",
-    "version": "1.4.2.0",
-    "timestamp": "2026-09-04T14:00:00Z",
+    "version": "1.4.3.0",
+    "timestamp": "2026-09-04T20:00:00Z",
     "status": "Active",
     "autoUpdate": true
 }

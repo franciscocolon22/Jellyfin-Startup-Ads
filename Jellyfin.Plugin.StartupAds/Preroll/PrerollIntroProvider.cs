@@ -21,6 +21,12 @@ namespace Jellyfin.Plugin.StartupAds.Preroll
     /// Jellyfin 10.11 only accepts an intro that resolves to a video <b>already in a library</b>
     /// (see <c>LibraryManager.ResolveIntro</c>), so a pre-roll ad references a Jellyfin item id,
     /// not a loose file.
+    ///
+    /// A pre-roll video the current viewer cannot access (their user account has no permission
+    /// on the library that holds it) is skipped rather than handed to the client: Jellyfin would
+    /// otherwise return an intro item with no playable media source, which fails the ENTIRE
+    /// playback ("No ha sido posible encontrar un medio válido para reproducir") instead of just
+    /// the pre-roll. See <see cref="Video.IsVisibleStandalone"/>.
     /// </summary>
     public sealed class PrerollIntroProvider : IIntroProvider
     {
@@ -90,14 +96,36 @@ namespace Jellyfin.Plugin.StartupAds.Preroll
                     }
 
                     // The intro must resolve to a video still present in a library; skip stale ids.
-                    var libItem = _libraryManager.GetItemById(g);
-                    if (libItem is null || string.IsNullOrEmpty(libItem.Path))
+                    if (_libraryManager.GetItemById(g) is not Video video || string.IsNullOrEmpty(video.Path))
                     {
                         _logger.LogWarning("[StartupAds] Pre-roll '{Name}': el vídeo ya no está en la biblioteca.", a.Name);
                         continue;
                     }
 
-                    infos.Add(new IntroInfo { ItemId = g, Path = libItem.Path });
+                    // The viewer must actually be able to see/play this item — otherwise Jellyfin
+                    // returns it with no playable media source and the WHOLE playback (movie
+                    // included) fails with "no valid media found". Never hand out an intro the
+                    // current user cannot access; skip it and let the movie play with no pre-roll.
+                    if (!video.IsVisibleStandalone(user))
+                    {
+                        _logger.LogWarning(
+                            "[StartupAds] Pre-roll '{Name}' omitido para {User}: sin acceso a la biblioteca que contiene el vídeo (revisa los permisos de biblioteca del usuario).",
+                            a.Name,
+                            user.Username);
+                        continue;
+                    }
+
+                    // A library item that has not finished being probed/scanned has no playable
+                    // media source yet; including it produces the same "no valid media" error.
+                    if (video.MediaSourceCount <= 0)
+                    {
+                        _logger.LogWarning(
+                            "[StartupAds] Pre-roll '{Name}' omitido: el vídeo no tiene ninguna fuente de medios reproducible (¿aún sin escanear?).",
+                            a.Name);
+                        continue;
+                    }
+
+                    infos.Add(new IntroInfo { ItemId = g, Path = video.Path });
                 }
 
                 if (infos.Count == 0)

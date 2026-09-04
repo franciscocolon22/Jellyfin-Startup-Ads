@@ -1,7 +1,7 @@
 ---
 name: "Jellyfin Startup Ads"
 guid: "6d1a9b6e-6b3e-4f9a-9c2d-3a7f1e2c4b90"
-version: "1.4.2.0"
+version: "1.4.3.0"
 targetAbi: "10.11.0.0"
 framework: "net9.0"
 owner: "franciscocolon22"
@@ -16,10 +16,11 @@ category: "General"
 artifacts:
   - "Jellyfin.Plugin.StartupAds.dll"
 changelog: >-
-  v1.4.2 — El botón «Crear anuncio»/«Añadir pre-roll» ya no ocupa todo el ancho (le
-  sobraba la clase CSS "block"). Aviso automático en la sección de pre-roll que
-  confirma si el servidor está bien configurado, y guía explícita del requisito
-  «Modo Cine / Cinema Mode» por dispositivo: si está apagado en el cliente,
-  Jellyfin nunca pide el pre-roll y va directo al contenido (no es un fallo del
-  plugin). Incluye v1.4.1 (config en 3 bloques + carpeta de vídeos del pre-roll),
-  v1.4.0 y v1.3.4.
+  v1.4.3 — Con «Modo Cine» ya activado, "No ha sido posible encontrar un medio
+  válido para reproducir" al darle a Play: casi siempre es que la biblioteca del
+  pre-roll no está habilitada para ese usuario (Dashboard → Usuarios → Acceso a
+  bibliotecas). El plugin ahora se protege solo: antes de entregar un pre-roll
+  comprueba que el usuario puede verlo (Video.IsVisibleStandalone) y que tiene
+  una fuente de medios reproducible; si no, lo omite y el contenido se reproduce
+  con normalidad en vez de fallar. Incluye v1.4.2 (botón corregido + guía de
+  Modo Cine), v1.4.1 y v1.4.0.

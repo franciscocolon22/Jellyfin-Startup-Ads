@@ -1,6 +1,6 @@
 # Jellyfin Startup Ads — Guía de configuración y funcionamiento
 
-> Aplica a la versión **1.4.2** del plugin · Jellyfin **10.11.11** · .NET **9**
+> Aplica a la versión **1.4.3** del plugin · Jellyfin **10.11.11** · .NET **9**
 
 > **Estructura de la página de configuración (v1.4.1).** El Dashboard muestra **3 bloques
 > independientes**, cada uno con su propio botón «Guardar»:
@@ -583,6 +583,26 @@ pre-roll del Dashboard muestra un aviso automático (justo encima de «Añadir p
 que confirma si el **servidor** tiene todo correcto (pre-roll activado + al menos un
 vídeo activo). Si ese aviso está en verde y aun así no se reproduce nada, el problema es
 100% el ajuste de «Modo Cine» del dispositivo, no la configuración del plugin.
+
+### 13.1.2. Con «Modo Cine» activado: «No ha sido posible encontrar un medio válido para reproducir» (v1.4.3)
+
+Con «Modo Cine» ya activado, Jellyfin **sí** pide el pre-roll — y si ese vídeo concreto
+no es reproducible para el usuario que ha iniciado sesión, la reproducción entera falla
+con ese error (no solo se salta el pre-roll). La causa casi siempre es de **permisos de
+biblioteca**: el vídeo del pre-roll vive en una biblioteca (por ejemplo «Anuncios») que
+**ese usuario no tiene habilitada**.
+
+**Solución:** en **Dashboard → Usuarios → (cada usuario) → Acceso a bibliotecas**,
+habilita la biblioteca que contiene la carpeta de vídeos del pre-roll para **todos** los
+usuarios a los que quieras mostrarles pre-rolls (lo más simple: dale acceso a "todas las
+bibliotecas" o, como mínimo, a la que use el pre-roll).
+
+Desde v1.4.3 el plugin además **se protege solo**: antes de devolver un pre-roll,
+comprueba que el usuario actual puede verlo (`Video.IsVisibleStandalone`) y que el vídeo
+tiene una fuente de medios reproducible; si no, **omite ese pre-roll** y la película o
+episodio se reproduce con normalidad, en vez de fallar por completo. Aun así, la
+biblioteca del pre-roll debe estar habilitada para el usuario para que **vea** el
+pre-roll (si se omite por permisos, no verá ninguno).
 
 ### 13.2. La carpeta de vídeos del pre-roll (v1.4.1)
 

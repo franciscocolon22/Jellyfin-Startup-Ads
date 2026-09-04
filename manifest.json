@@ -9,6 +9,14 @@
         "imageUrl": "",
         "versions": [
             {
+                "version": "1.4.3.0",
+                "changelog": "Con «Modo Cine» ya activado, algunos usuarios veían al reproducir: «Error de reproducción: No ha sido posible encontrar un medio válido para reproducir». Causa: la biblioteca del pre-roll no estaba habilitada para ese usuario. Solución: Dashboard → Usuarios → (usuario) → Acceso a bibliotecas → habilitarla. El plugin ahora se protege solo: comprueba que el usuario puede ver el vídeo del pre-roll y que tiene una fuente de medios reproducible antes de entregarlo; si no, lo omite y el contenido se reproduce con normalidad en vez de fallar. Incluye v1.4.2/v1.4.1/v1.4.0/v1.3.4.",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/franciscocolon22/Jellyfin-Startup-Ads/releases/download/v1.4.3/jellyfin-startup-ads_1.4.3.0.zip",
+                "checksum": "4cc6b0cb9b96f3aa2a3cd1cd07142606",
+                "timestamp": "2026-09-04T20:00:00Z"
+            },
+            {
                 "version": "1.4.2.0",
                 "changelog": "Corrección: el botón «Crear anuncio» / «Añadir pre-roll» ocupaba todo el ancho en vez del tamaño normal de los demás botones. Aviso automático en la sección de pre-roll que confirma si el servidor está bien configurado, y guía explícita: si el pre-roll no se reproduce al darle a Play, casi siempre es porque el ajuste de reproducción «Modo Cine» / «Cinema Mode» está apagado en el cliente (Jellyfin Web, Android o Android TV) — es un ajuste por usuario y por app, no del servidor; sin él, Jellyfin nunca pide el pre-roll a ningún proveedor. Incluye v1.4.1/v1.4.0/v1.3.4.",
                 "targetAbi": "10.11.0.0",

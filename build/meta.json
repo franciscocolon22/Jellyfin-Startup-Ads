@@ -1,14 +1,14 @@
 {
     "category": "General",
-    "changelog": "v1.4.1 — LA CONFIGURACIÓN SE REORGANIZA EN 3 BLOQUES INDEPENDIENTES Y CLAROS: «1 · Configuración general» (solo lo que afecta a los dos sistemas: activar el plugin, idioma, estadísticas), «2 · Presentación (al iniciar Jellyfin Web)» (overlay web: inyección, carpeta de la presentación, modo de visualización, cuenta atrás/omitir, vídeo, apariencia + lista de anuncios) y «3 · Anuncios antes de reproducir (pre-roll)» (todo lo del pre-roll + su lista). Cada bloque tiene su propio botón «Guardar». NUEVO en el pre-roll: «Carpeta de vídeos del pre-roll» con «Validar carpeta» y «Escanear e importar vídeos» (crea un pre-roll por cada vídeo indexado de esa carpeta y quita los importados cuyo vídeo ya no está); el buscador de «Añadir pre-roll» se limita a esa carpeta. El proveedor de pre-roll ahora también envía la ruta del vídeo (IntroInfo.Path) y descarta al vuelo anuncios cuyo vídeo se haya borrado de la biblioteca. Incluye v1.4.0 (segundo sistema de anuncios / IIntroProvider) y v1.3.4.",
-    "description": "Dos sistemas de anuncios independientes para Jellyfin, con la configuración separada en 3 bloques (General / Presentación / Pre-roll): (1) overlay multimedia al abrir Jellyfin Web y (2) pre-roll de vídeos de la biblioteca antes de cada película o episodio (apps nativas incluidas), con su propia carpeta de vídeos, validación e importación.",
+    "changelog": "v1.4.2 — CORRECCIÓN: el botón «Crear anuncio» (y «Añadir pre-roll») ocupaba todo el ancho de la sección en vez del tamaño normal de los demás botones (le sobraba la clase CSS «block»); ya son del mismo tamaño que «Validar ruta» / «Escanear». GUÍA Y AVISO PARA «EL PRE-ROLL NO SE REPRODUCE»: la sección de pre-roll del Dashboard muestra ahora un aviso automático que confirma si el servidor está bien configurado (pre-roll activado + al menos un vídeo válido y activo); si ese aviso está en verde y aun así no suena nada, la causa es el ajuste de reproducción «Modo Cine» / «Cinema Mode», que es por usuario y por dispositivo (se explica dónde activarlo en Jellyfin Web y en Android/Android TV) — Jellyfin nunca pide el pre-roll a ningún proveedor si ese ajuste del cliente está apagado; esto no es un fallo del plugin. Incluye v1.4.1 (configuración en 3 bloques + carpeta de vídeos del pre-roll), v1.4.0 (segundo sistema de anuncios / IIntroProvider) y v1.3.4.",
+    "description": "Dos sistemas de anuncios independientes para Jellyfin, con la configuración separada en 3 bloques (General / Presentación / Pre-roll): (1) overlay multimedia al abrir Jellyfin Web y (2) pre-roll de vídeos de la biblioteca antes de cada película o episodio (apps nativas incluidas), con su propia carpeta de vídeos, validación, importación y diagnóstico de configuración.",
     "guid": "6d1a9b6e-6b3e-4f9a-9c2d-3a7f1e2c4b90",
     "name": "Jellyfin Startup Ads",
     "overview": "Anuncios al iniciar Jellyfin Web y pre-roll antes de cada vídeo.",
     "owner": "franciscocolon22",
     "targetAbi": "10.11.0.0",
-    "version": "1.4.1.0",
-    "timestamp": "2026-09-03T23:30:00Z",
+    "version": "1.4.2.0",
+    "timestamp": "2026-09-04T14:00:00Z",
     "status": "Active",
     "autoUpdate": true
 }

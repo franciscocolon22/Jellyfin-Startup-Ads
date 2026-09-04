@@ -12,12 +12,37 @@ desde el Dashboard, con controles de seguridad adecuados.
 |---|---|
 | Jellyfin | **10.11.11** (targetAbi `10.11.0.0`) |
 | .NET | **9.0** |
-| Versión del plugin | **1.4.1.0** |
+| Versión del plugin | **1.4.2.0** |
 | Paquetes | `Jellyfin.Controller` / `Jellyfin.Model` 10.11.11 (`ExcludeAssets=runtime`) |
 | Licencia | MIT |
 
 > 📖 **Guía completa de configuración y funcionamiento** (qué hace cada opción y qué
 > se ejecuta en runtime): [`docs/CONFIGURACION.md`](docs/CONFIGURACION.md)
+
+---
+
+## Novedad v1.4.2 — botón «Crear anuncio» corregido + por qué el pre-roll no se reproduce
+
+- **Bug:** el botón **«Crear anuncio»** (y **«Añadir pre-roll»**) ocupaba **todo el ancho**
+  de la sección en vez del tamaño normal de los demás botones. Tenían de más la clase CSS
+  `block` (ancho 100%); se ha quitado, ahora son del mismo tamaño que «Validar ruta»,
+  «Escanear», etc.
+
+- **«Configuré el pre-roll pero al darle a Play no pasa nada, solo carga la película».**
+  Esto **no es un fallo del plugin**: Jellyfin nunca pide el pre-roll a ningún proveedor
+  (el nuestro incluido) si el ajuste de reproducción **«Modo Cine» / «Cinema Mode»** está
+  apagado — y es un ajuste **por usuario, guardado en cada app**, no en el servidor.
+
+  | Cliente | Dónde activarlo |
+  |---|---|
+  | **Jellyfin Web** | Usuario → Configuración → Reproducción → **«Modo Cine»** |
+  | **Android / Android TV** | Ajustes → Reproducción → **«Cinema Mode»** (en Android TV, revisa también que «Resume pre-roll» no esté en 0) |
+
+  La sección de pre-roll del Dashboard ahora muestra un **aviso automático** (encima de
+  «Añadir pre-roll») que confirma si el **servidor** está bien configurado. Si ese aviso
+  sale en verde y aun así no suena nada, el problema es 100% el «Modo Cine» del
+  dispositivo — no la configuración del plugin. Detalle completo en
+  [`docs/CONFIGURACION.md` §13.1.1](docs/CONFIGURACION.md#1311-requisito-imprescindible-modo-cine--cinema-mode-v142).
 
 ---
 

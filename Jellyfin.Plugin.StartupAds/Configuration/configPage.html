@@ -208,7 +208,7 @@
             <!-- ================= ADVERTISEMENTS (presentación) ================= -->
             <div class="verticalSection" style="margin-top:2em;">
                 <h3>Lista de anuncios de la presentación</h3>
-                <button is="emby-button" type="button" id="saNewAd" class="raised block">
+                <button is="emby-button" type="button" id="saNewAd" class="raised">
                     <span>Crear anuncio</span>
                 </button>
                 <div style="overflow-x:auto;">
@@ -233,11 +233,21 @@
             <form id="saPrerollForm" class="saForm" style="margin-top:2.5em;border-top:2px solid rgba(255,255,255,.15);padding-top:1.5em;">
                 <h2>3 · Anuncios antes de reproducir (pre-roll)</h2>
                 <p class="fieldDescription">
-                    Reproduce un <b>vídeo</b> de tu biblioteca antes de cada película/episodio. <b>Funciona en la
-                    app de Android, Android TV, Roku, etc.</b> (el cliente debe tener activado «Cinema Mode /
-                    Reproducir intros»). No tiene overlay ni botón «Omitir»: es reproducción normal.
-                    Los vídeos deben estar en una <b>biblioteca de Jellyfin</b>.
+                    Reproduce un <b>vídeo</b> de tu biblioteca antes de cada película/episodio. Funciona en la
+                    app de Android, Android TV, Roku, etc. No tiene overlay ni botón «Omitir»: es reproducción
+                    normal. Los vídeos deben estar en una <b>biblioteca de Jellyfin</b>.
                 </p>
+                <div class="saFormError" style="background:rgba(255,167,38,.15);color:#ffb74d;">
+                    ⚠ <b>Paso obligatorio en cada dispositivo:</b> esto configura el servidor, pero cada
+                    <b>usuario</b> tiene que activar además <b>«Modo Cine» / «Cinema Mode»</b> en los ajustes de
+                    <b>reproducción</b> de su app — si está apagado, Jellyfin nunca pide el pre-roll y va
+                    directo a la película/episodio.
+                    <ul style="margin:6px 0 0 1.2em;padding:0;">
+                        <li><b>Jellyfin Web:</b> icono de usuario → <i>Configuración</i> → <i>Reproducción</i> → activa <i>«Modo Cine»</i>.</li>
+                        <li><b>Android / Android TV:</b> <i>Ajustes</i> → <i>Reproducción</i> → activa <i>«Cinema Mode»</i> (en Android TV, además revisa que <i>«Resume pre-roll»</i> no esté en 0).</li>
+                    </ul>
+                    El pre-roll <b>no se activa</b> reproduciendo desde el reanudado ni con «reproducir siguiente/anterior», solo al iniciar el contenido desde cero.
+                </div>
 
                 <div class="checkboxContainer">
                     <label><input is="emby-checkbox" type="checkbox" id="prEnabled" />
@@ -304,7 +314,8 @@
                 </button>
 
                 <h3 style="margin-top:1.4em;">Vídeos pre-roll</h3>
-                <button is="emby-button" type="button" id="prNewAd" class="raised block">
+                <div id="prStatusBanner" class="fieldDescription" style="margin-bottom:8px;"></div>
+                <button is="emby-button" type="button" id="prNewAd" class="raised">
                     <span>Añadir pre-roll</span>
                 </button>
                 <div style="overflow-x:auto;">
@@ -695,7 +706,7 @@
             /* ---------------------------------------------------------------- */
             var state = {
                 view: null, modal: null, prModal: null,
-                files: [], users: [], prCandidates: [],
+                files: [], users: [], prCandidates: [], prAds: [],
                 lastFocus: null, defaultDuration: 10
             };
 
@@ -756,6 +767,7 @@
                     setVal('prFrequency', pr.Frequency || 'EveryPlayback');
                     setVal('prChance', pr.RandomChancePercent || 100);
                     syncPrChance();
+                    updatePrStatusBanner();
                 });
             }
 
@@ -1207,9 +1219,36 @@
                 else { e.hidden = true; e.textContent = ''; }
             }
 
+            /**
+             * Pure client-side self-check: catches the most common server-side misconfigurations
+             * (pre-roll off, no active/valid video) without a round trip. It can NOT detect the
+             * #1 real-world cause of "no se reproduce nada": each viewer's own «Modo Cine / Cinema
+             * Mode» playback setting being off — that lives in the client, not on the server.
+             */
+            function updatePrStatusBanner() {
+                var el = q(state.view, 'prStatusBanner');
+                if (!el) { return; }
+                var enabled = chk('prEnabled');
+                var ads = state.prAds || [];
+                var usable = ads.filter(function (a) { return a.Enabled && a.ItemId; });
+
+                if (!enabled) {
+                    el.textContent = '⚠ El pre-roll está desactivado arriba («Activar anuncios antes de reproducir»). Actívalo y pulsa Guardar.';
+                    el.style.color = '#ffa726';
+                } else if (usable.length === 0) {
+                    el.textContent = '⚠ No tienes ningún vídeo pre-roll activo. Añade uno o activa alguno de la lista.';
+                    el.style.color = '#ffa726';
+                } else {
+                    el.textContent = '✔ Configuración del servidor correcta: ' + usable.length +
+                        ' vídeo(s) pre-roll activo(s). Si aun así no se reproduce nada, revisa el aviso de «Modo Cine» de arriba: es un ajuste de cada app, no del servidor.';
+                    el.style.color = '#66bb6a';
+                }
+            }
+
             function loadPrerollAds() {
                 return req('GET', 'Admin/Preroll/Advertisements').then(function (ads) {
                     ads = ads || [];
+                    state.prAds = ads;
                     var tbody = q(state.view, 'prAdsBody');
                     tbody.textContent = '';
                     q(state.view, 'prNoAds').hidden = ads.length > 0;
@@ -1238,6 +1277,7 @@
                         tr.appendChild(td);
                         tbody.appendChild(tr);
                     });
+                    updatePrStatusBanner();
                 }).catch(function (err) {
                     Dashboard.alert({ title: 'Error', message: 'No se pudieron cargar los pre-rolls: ' + errText(err) });
                 });
@@ -1416,6 +1456,7 @@
                 view.querySelector('#prFrequency').addEventListener('change', syncPrChance);
                 view.querySelector('#prValidateDir').addEventListener('click', prValidateDir);
                 view.querySelector('#prScanDir').addEventListener('click', prScanDir);
+                view.querySelector('#prEnabled').addEventListener('change', updatePrStatusBanner);
 
                 prModal.querySelector('#prCancelEdit').addEventListener('click', closePrEditor);
                 prModal.querySelector('#prModalX').addEventListener('click', closePrEditor);

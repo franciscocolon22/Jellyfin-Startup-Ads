@@ -1,6 +1,6 @@
 # Jellyfin Startup Ads — Guía de configuración y funcionamiento
 
-> Aplica a la versión **1.4.1** del plugin · Jellyfin **10.11.11** · .NET **9**
+> Aplica a la versión **1.4.2** del plugin · Jellyfin **10.11.11** · .NET **9**
 
 > **Estructura de la página de configuración (v1.4.1).** El Dashboard muestra **3 bloques
 > independientes**, cada uno con su propio botón «Guardar»:
@@ -554,6 +554,35 @@ videos*), sube ahí tus clips y elígelos en el editor.
 
 Cualquier excepción durante la selección se captura y se registra
 (`[StartupAds] Pre-roll selection failed`); **nunca** rompe la reproducción.
+
+### 13.1.1. Requisito imprescindible: «Modo Cine / Cinema Mode» (v1.4.2)
+
+> ⚠️ **Esto es la causa nº 1 de «configuré el pre-roll pero al darle a Play no pasa nada,
+> solo carga la película».** No es un fallo del plugin: Jellyfin **nunca** pide los
+> intros a ningún `IIntroProvider` (ni al nuestro ni al de ningún otro plugin) si el
+> ajuste de reproducción **«Modo Cine» / «Cinema Mode»** está desactivado. Es un ajuste
+> **por usuario y por app**, guardado en el cliente, no en el servidor — activarlo en el
+> Dashboard del servidor no lo activa en el móvil/TV.
+
+Dónde está en cada cliente:
+
+| Cliente | Ruta del ajuste |
+|---|---|
+| **Jellyfin Web** | icono de usuario (arriba a la derecha) → **Configuración** → **Reproducción** → activa **«Modo Cine»**. |
+| **Android / Android TV** | **Ajustes** → **Reproducción** → activa **«Cinema Mode»**. En Android TV, si sigue sin sonar, revisa además que **«Resume pre-roll»** no esté en `0` (algunas versiones no disparan el pre-roll con ese valor). |
+
+Además, según el propio código del reproductor (`playbackmanager.js` de jellyfin-web,
+mismo contrato que siguen los demás clientes oficiales), el pre-roll **se salta** si:
+
+- se reanuda una reproducción ya empezada (no aplica desde el minuto 0);
+- se pasa a "siguiente/anterior" dentro de una cola en vez de iniciar el ítem;
+- el reproductor no está en modo pantalla completa.
+
+**Cómo distinguir "es el cliente" de "es el servidor":** desde v1.4.2 la sección de
+pre-roll del Dashboard muestra un aviso automático (justo encima de «Añadir pre-roll»)
+que confirma si el **servidor** tiene todo correcto (pre-roll activado + al menos un
+vídeo activo). Si ese aviso está en verde y aun así no se reproduce nada, el problema es
+100% el ajuste de «Modo Cine» del dispositivo, no la configuración del plugin.
 
 ### 13.2. La carpeta de vídeos del pre-roll (v1.4.1)
 

@@ -9,6 +9,14 @@
         "imageUrl": "",
         "versions": [
             {
+                "version": "1.4.2.0",
+                "changelog": "Corrección: el botón «Crear anuncio» / «Añadir pre-roll» ocupaba todo el ancho en vez del tamaño normal de los demás botones. Aviso automático en la sección de pre-roll que confirma si el servidor está bien configurado, y guía explícita: si el pre-roll no se reproduce al darle a Play, casi siempre es porque el ajuste de reproducción «Modo Cine» / «Cinema Mode» está apagado en el cliente (Jellyfin Web, Android o Android TV) — es un ajuste por usuario y por app, no del servidor; sin él, Jellyfin nunca pide el pre-roll a ningún proveedor. Incluye v1.4.1/v1.4.0/v1.3.4.",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/franciscocolon22/Jellyfin-Startup-Ads/releases/download/v1.4.2/jellyfin-startup-ads_1.4.2.0.zip",
+                "checksum": "b88de0028a005bf625106db7fdcdd7fa",
+                "timestamp": "2026-09-04T14:00:00Z"
+            },
+            {
                 "version": "1.4.1.0",
                 "changelog": "Configuración reorganizada en 3 bloques independientes: «1 · General» (activar plugin, idioma, estadísticas — aplica a los dos sistemas), «2 · Presentación» (overlay de Jellyfin Web) y «3 · Pre-roll» (antes de cada vídeo), cada uno con su propio botón «Guardar». NUEVO: el pre-roll tiene su «Carpeta de vídeos» con «Validar carpeta» y «Escanear e importar vídeos»; el buscador de vídeos se limita a esa carpeta. El proveedor de pre-roll envía también IntroInfo.Path y descarta anuncios cuyo vídeo ya no existe. Incluye v1.4.0 y v1.3.4/v1.3.3/v1.3.2/v1.3.1/v1.3.0/v1.2.0/v1.1.0.",
                 "targetAbi": "10.11.0.0",

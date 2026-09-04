@@ -1,14 +1,14 @@
 {
     "category": "General",
-    "changelog": "v1.4.3 — Con «Modo Cine»/«Cinema Mode» ya activado, algunos usuarios veían al darle a Play: «Error de reproducción: No ha sido posible encontrar un medio válido para reproducir». Causa: la biblioteca que contiene la carpeta de vídeos del pre-roll no estaba habilitada para ese usuario, así que Jellyfin resolvía el pre-roll a un vídeo sin fuente de medios reproducible y la reproducción entera fallaba (no solo el pre-roll). Solución para el administrador: Dashboard → Usuarios → (usuario) → Acceso a bibliotecas → habilitar la biblioteca del pre-roll. PROTECCIÓN AÑADIDA: antes de entregar un pre-roll, el plugin comprueba ahora que el usuario actual puede verlo (Video.IsVisibleStandalone) y que tiene al menos una fuente de medios; si no, omite ese pre-roll y el contenido solicitado se reproduce con normalidad, en vez de fallar por completo. Aviso y guía ampliados en la sección de pre-roll del Dashboard y en docs/CONFIGURACION.md §13.1.2. Incluye v1.4.2 (botón «Crear anuncio» corregido + guía de «Modo Cine»), v1.4.1 (configuración en 3 bloques + carpeta de vídeos del pre-roll) y v1.4.0 (segundo sistema de anuncios / IIntroProvider).",
-    "description": "Dos sistemas de anuncios independientes para Jellyfin, con la configuración separada en 3 bloques (General / Presentación / Pre-roll): (1) overlay multimedia al abrir Jellyfin Web y (2) pre-roll de vídeos de la biblioteca antes de cada película o episodio (apps nativas incluidas), con su propia carpeta de vídeos, validación, importación y protección automática de permisos de biblioteca.",
+    "changelog": "v1.4.4 — NUEVA HERRAMIENTA DE DIAGNÓSTICO en la sección de pre-roll («Diagnóstico: ¿por qué no se reproduce?»): elige una película o episodio real y un usuario, pulsa «Probar», y el servidor ejecuta exactamente la misma lógica que usa una reproducción real (plugin activo, pre-roll activo, tipo de contenido, frecuencia, fecha/día/hora, segmentación por usuario, acceso a la biblioteca del vídeo, fuente de medios reproducible) y explica vídeo por vídeo si se mostraría y, si no, el motivo concreto. Si el diagnóstico dice que SÍ se reproduciría y aun así no suena nada en el dispositivo, el problema es «Modo Cine»/«Cinema Mode» del cliente (ver v1.4.2), no la configuración del plugin; si dice que NO, la columna «Motivo» indica justo qué corregir. Nuevos endpoints Admin/Preroll/ContentCandidates y Admin/Preroll/Diagnose. 9 tests nuevos para la lógica de diagnóstico (119 en total). Incluye v1.4.3 (protección automática por permisos de biblioteca / fuente de medios), v1.4.2 (botón «Crear anuncio» corregido + guía de «Modo Cine») y v1.4.1 (configuración en 3 bloques + carpeta de vídeos del pre-roll).",
+    "description": "Dos sistemas de anuncios independientes para Jellyfin, con la configuración separada en 3 bloques (General / Presentación / Pre-roll): (1) overlay multimedia al abrir Jellyfin Web y (2) pre-roll de vídeos de la biblioteca antes de cada película o episodio (apps nativas incluidas), con su propia carpeta de vídeos, validación, importación, protección de permisos y una herramienta de diagnóstico integrada.",
     "guid": "6d1a9b6e-6b3e-4f9a-9c2d-3a7f1e2c4b90",
     "name": "Jellyfin Startup Ads",
     "overview": "Anuncios al iniciar Jellyfin Web y pre-roll antes de cada vídeo.",
     "owner": "franciscocolon22",
     "targetAbi": "10.11.0.0",
-    "version": "1.4.3.0",
-    "timestamp": "2026-09-04T20:00:00Z",
+    "version": "1.4.4.0",
+    "timestamp": "2026-09-04T23:00:00Z",
     "status": "Active",
     "autoUpdate": true
 }

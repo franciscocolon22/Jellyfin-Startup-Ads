@@ -41,19 +41,22 @@ namespace Jellyfin.Plugin.StartupAds.Api
         private readonly PrerollManager _preroll;
         private readonly MediaFileService _files;
         private readonly ILibraryManager _libraryManager;
+        private readonly IUserManager _userManager;
 
         public StartupAdsController(
             ILogger<StartupAdsController> logger,
             AdvertisementManager manager,
             PrerollManager preroll,
             MediaFileService files,
-            ILibraryManager libraryManager)
+            ILibraryManager libraryManager,
+            IUserManager userManager)
         {
             _logger = logger;
             _manager = manager;
             _preroll = preroll;
             _files = files;
             _libraryManager = libraryManager;
+            _userManager = userManager;
         }
 
         private static PluginConfiguration Config =>
@@ -451,6 +454,76 @@ namespace Jellyfin.Plugin.StartupAds.Api
             .ToList();
 
             return Ok(_preroll.SyncFolder(videos));
+        }
+
+        /// <summary>Searches movies/episodes (real content, not pre-roll ad videos) to diagnose against.</summary>
+        [HttpGet("Admin/Preroll/ContentCandidates")]
+        [Authorize(Policy = "RequiresElevation")]
+        public ActionResult<IEnumerable<object>> PrerollContentCandidates([FromQuery] string? q)
+        {
+            var query = new InternalItemsQuery
+            {
+                IncludeItemTypes = new[] { BaseItemKind.Movie, BaseItemKind.Episode },
+                Recursive = true,
+                Limit = 40
+            };
+
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                query.SearchTerm = q.Trim();
+            }
+
+            var items = _libraryManager.GetItemList(query)
+                .Select(i => new { Id = i.Id.ToString(), i.Name, Type = i.GetBaseItemKind().ToString() });
+
+            return Ok(items);
+        }
+
+        /// <summary>
+        /// Runs the exact pre-roll selection logic for a given content item + user and explains,
+        /// ad by ad, whether it would play and why not — so a server misconfiguration can be told
+        /// apart from a client-side "Modo Cine / Cinema Mode" issue without guesswork.
+        /// </summary>
+        [HttpGet("Admin/Preroll/Diagnose")]
+        [Authorize(Policy = "RequiresElevation")]
+        public ActionResult<PrerollManager.DiagnosisResult> DiagnosePreroll([FromQuery] Guid itemId, [FromQuery] Guid userId)
+        {
+            var item = _libraryManager.GetItemById(itemId);
+            if (item is null)
+            {
+                return NotFound("No existe ningún contenido con ese identificador.");
+            }
+
+            var user = _userManager.GetUserById(userId);
+            if (user is null)
+            {
+                return NotFound("No existe ningún usuario con ese identificador.");
+            }
+
+            var cfg = Config;
+            var now = DateTime.Now;
+            var userIdStr = userId.ToString();
+            var alreadyShownToday = cfg.Preroll.ShownLog.Any(s =>
+                string.Equals(s.UserId, userIdStr, StringComparison.OrdinalIgnoreCase) && s.Date.Date == now.Date);
+
+            var result = PrerollManager.Diagnose(
+                cfg,
+                item.GetBaseItemKind(),
+                userIdStr,
+                now,
+                alreadyShownToday,
+                ad =>
+                {
+                    if (!Guid.TryParse(ad.ItemId, out var g)
+                        || _libraryManager.GetItemById(g) is not Video video)
+                    {
+                        return (false, false, false);
+                    }
+
+                    return (true, video.IsVisibleStandalone(user), video.MediaSourceCount > 0);
+                });
+
+            return Ok(result);
         }
 
         private int CountLibraryVideosIn(string? directory)

@@ -1,6 +1,6 @@
 # Jellyfin Startup Ads — Guía de configuración y funcionamiento
 
-> Aplica a la versión **1.4.3** del plugin · Jellyfin **10.11.11** · .NET **9**
+> Aplica a la versión **1.4.4** del plugin · Jellyfin **10.11.11** · .NET **9**
 
 > **Estructura de la página de configuración (v1.4.1).** El Dashboard muestra **3 bloques
 > independientes**, cada uno con su propio botón «Guardar»:
@@ -604,6 +604,21 @@ episodio se reproduce con normalidad, en vez de fallar por completo. Aun así, l
 biblioteca del pre-roll debe estar habilitada para el usuario para que **vea** el
 pre-roll (si se omite por permisos, no verá ninguno).
 
+### 13.1.3. Herramienta de diagnóstico (v1.4.4)
+
+Al final de la sección de pre-roll hay un bloque **«Diagnóstico: ¿por qué no se
+reproduce?»**: eliges una **película o episodio** real y un **usuario**, pulsas
+**«Probar»**, y el servidor ejecuta exactamente la misma lógica que usa
+`PrerollIntroProvider` en una reproducción real (activo, aplica a ese tipo de
+contenido, frecuencia, fecha/día/hora, segmentación por usuario, acceso a la
+biblioteca del vídeo, fuente de medios) y te dice **ad por ad** si se mostraría y,
+si no, el motivo exacto.
+
+- Si dice que **SÍ se reproduciría** y aun así no suena nada en el dispositivo → es
+  «Modo Cine» (§13.1.1) en el cliente, no la configuración del plugin.
+- Si dice que **NO** → la columna «Motivo» apunta directo al ajuste a corregir
+  (anuncio desactivado, fuera de horario, sin acceso a la biblioteca del vídeo…).
+
 ### 13.2. La carpeta de vídeos del pre-roll (v1.4.1)
 
 **«Carpeta de vídeos del pre-roll»** es una carpeta absoluta del servidor que **debe estar
@@ -657,6 +672,8 @@ biblioteca (comportamiento de v1.4.0).
 | `GET` | `StartupAds/Admin/Preroll/Candidates?q=` | Buscar vídeos (limitado a la carpeta del pre-roll si está fijada) |
 | `POST` | `StartupAds/Admin/Preroll/ValidateDirectory` | Validar la carpeta de vídeos del pre-roll |
 | `POST` | `StartupAds/Admin/Preroll/Scan` | Importar los vídeos de la carpeta del pre-roll |
+| `GET` | `StartupAds/Admin/Preroll/ContentCandidates?q=` | Buscar películas/episodios (contenido real, para el diagnóstico) |
+| `GET` | `StartupAds/Admin/Preroll/Diagnose?itemId=&userId=` | Simular la selección para un contenido + usuario y explicar el resultado |
 
 Todo se guarda en el mismo `PluginConfiguration` (nodo `Preroll`, con `VideosDirectory`),
 en el `configurations/Jellyfin.Plugin.StartupAds.xml` de Jellyfin.

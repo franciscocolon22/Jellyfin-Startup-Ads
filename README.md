@@ -12,12 +12,32 @@ desde el Dashboard, con controles de seguridad adecuados.
 |---|---|
 | Jellyfin | **10.11.11** (targetAbi `10.11.0.0`) |
 | .NET | **9.0** |
-| Versión del plugin | **1.4.3.0** |
+| Versión del plugin | **1.4.4.0** |
 | Paquetes | `Jellyfin.Controller` / `Jellyfin.Model` 10.11.11 (`ExcludeAssets=runtime`) |
 | Licencia | MIT |
 
 > 📖 **Guía completa de configuración y funcionamiento** (qué hace cada opción y qué
 > se ejecuta en runtime): [`docs/CONFIGURACION.md`](docs/CONFIGURACION.md)
+
+---
+
+## Novedad v1.4.4 — herramienta de diagnóstico: por qué el pre-roll no se reproduce
+
+En vez de seguir adivinando, la sección de pre-roll del Dashboard tiene ahora un bloque
+**«Diagnóstico: ¿por qué no se reproduce?»** al final: eliges una **película o
+episodio** real y un **usuario**, pulsas **«Probar»**, y el servidor ejecuta la
+**misma lógica exacta** que usa en una reproducción real (plugin activo, pre-roll
+activo, tipo de contenido, frecuencia, fecha/día/hora, usuario, acceso a la
+biblioteca del vídeo, fuente de medios reproducible) y te dice **vídeo por vídeo**
+si se mostraría y, si no, el motivo concreto.
+
+- **Dice que SÍ se reproduciría** y aun así no suena nada en el dispositivo → es
+  «Modo Cine» del cliente (ver arriba), no la configuración del plugin.
+- **Dice que NO** → la columna «Motivo» de cada vídeo apunta directo a qué corregir
+  (desactivado, fuera de horario, sin acceso a la biblioteca del vídeo, etc.).
+
+Esto separa de forma definitiva "está mal configurado en el servidor" de "es un
+ajuste del dispositivo" — que son las dos causas de todo lo visto hasta ahora.
 
 ---
 

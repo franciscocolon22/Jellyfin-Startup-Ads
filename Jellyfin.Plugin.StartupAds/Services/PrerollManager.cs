@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Jellyfin.Data.Enums;
 using Jellyfin.Plugin.StartupAds.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -191,6 +192,150 @@ namespace Jellyfin.Plugin.StartupAds.Services
                 && (!Guid.TryParse(a.ItemId, out var g) || !found.Contains(g)));
 
             result.Total = ads.Count;
+            return result;
+        }
+
+/// <summary>Per-ad breakdown produced by <see cref="Diagnose"/>.</summary>
+        public sealed class AdDiagnosis
+        {
+            public string Name { get; set; } = string.Empty;
+
+            public bool Enabled { get; set; }
+
+            public bool VideoExists { get; set; }
+
+            public bool UserCanSeeVideo { get; set; }
+
+            public bool HasPlayableMedia { get; set; }
+
+            public bool ScheduleOk { get; set; }
+
+            public bool UserTargeted { get; set; }
+
+            public bool WouldPlay { get; set; }
+
+            public string Reason { get; set; } = string.Empty;
+        }
+
+        /// <summary>Result of <see cref="Diagnose"/>: a plain-language explanation of what would happen.</summary>
+        public sealed class DiagnosisResult
+        {
+            public bool PluginEnabled { get; set; }
+
+            public bool PrerollEnabled { get; set; }
+
+            public bool AppliesToContentType { get; set; }
+
+            public bool FrequencyAllowsNow { get; set; }
+
+            public int TotalAds { get; set; }
+
+            public int WouldPlayCount { get; set; }
+
+            public List<AdDiagnosis> Ads { get; set; } = new();
+
+            public string Summary { get; set; } = string.Empty;
+        }
+
+        /// <summary>
+        /// Runs the exact same gates <see cref="Preroll.PrerollIntroProvider"/> uses at playback
+        /// time, but returns a full explanation instead of just a yes/no — so a misconfiguration
+        /// (a disabled ad, one outside its schedule, a user with no library access to the video…)
+        /// can be told apart from a client-side "Modo Cine" issue without guessing.
+        /// </summary>
+        /// <param name="pluginCfg">The live plugin configuration.</param>
+        /// <param name="itemKind">Kind of the content the viewer is about to play.</param>
+        /// <param name="userId">The viewer's user id (string form).</param>
+        /// <param name="nowLocal">Current local time.</param>
+        /// <param name="alreadyShownToday">Whether <see cref="PrerollConfiguration.ShownLog"/> already has an entry today for this user.</param>
+        /// <param name="resolveAd">
+        /// For one ad's <c>ItemId</c>: (exists in a library, current user can see it, has a playable
+        /// media source). Injected so this stays testable without a live <c>ILibraryManager</c>.
+        /// </param>
+        public static DiagnosisResult Diagnose(
+            PluginConfiguration pluginCfg,
+            BaseItemKind itemKind,
+            string userId,
+            DateTime nowLocal,
+            bool alreadyShownToday,
+            Func<PrerollAd, (bool Exists, bool Visible, bool HasMedia)> resolveAd)
+        {
+            var cfg = pluginCfg.Preroll;
+            var result = new DiagnosisResult
+            {
+                PluginEnabled = pluginCfg.Enabled,
+                PrerollEnabled = cfg.Enabled,
+                TotalAds = cfg.Advertisements.Count
+            };
+
+            result.AppliesToContentType = cfg.AppliesTo switch
+            {
+                PrerollAppliesTo.Movies => itemKind == BaseItemKind.Movie,
+                PrerollAppliesTo.Episodes => itemKind == BaseItemKind.Episode,
+                _ => itemKind is BaseItemKind.Movie or BaseItemKind.Episode
+            };
+
+            result.FrequencyAllowsNow = cfg.Frequency != PrerollFrequency.OncePerDay || !alreadyShownToday;
+
+            var gatesOpen = pluginCfg.Enabled && cfg.Enabled && result.AppliesToContentType && result.FrequencyAllowsNow;
+            var selected = gatesOpen
+                ? new HashSet<Guid>(Select(cfg, userId, nowLocal).Select(a => a.Id))
+                : new HashSet<Guid>();
+
+            foreach (var ad in cfg.Advertisements)
+            {
+                var (exists, visible, hasMedia) = string.IsNullOrWhiteSpace(ad.ItemId)
+                    ? (false, false, false)
+                    : resolveAd(ad);
+                var scheduleOk = IsWithinSchedule(ad, nowLocal);
+                var userOk = IsUserTargeted(ad, userId);
+                // Select() only knows about Enabled/schedule/targeting; the library-access and
+                // media-source checks (exists/visible/hasMedia) come from resolveAd and must gate
+                // WouldPlay too, or a permission problem would be reported as "would play".
+                var wouldPlay = gatesOpen && exists && visible && hasMedia && selected.Contains(ad.Id);
+
+                var reason = !ad.Enabled ? "Anuncio desactivado."
+                    : string.IsNullOrWhiteSpace(ad.ItemId) ? "Sin vídeo asignado."
+                    : !exists ? "El vídeo ya no existe en ninguna biblioteca."
+                    : !visible ? "El usuario no tiene acceso a la biblioteca que contiene ese vídeo."
+                    : !hasMedia ? "El vídeo no tiene ninguna fuente de medios reproducible."
+                    : !scheduleOk ? "Fuera de la fecha / día / hora programados."
+                    : !userOk ? "Este anuncio no incluye a este usuario."
+                    : !result.AppliesToContentType ? "«Aplicar a» no incluye este tipo de contenido."
+                    : !result.FrequencyAllowsNow ? "Ya se le mostró un pre-roll hoy (frecuencia: una vez al día)."
+                    : wouldPlay ? "Se reproduciría."
+                    : "Descartado por el máximo por reproducción / orden / aleatorio.";
+
+                result.Ads.Add(new AdDiagnosis
+                {
+                    Name = ad.Name,
+                    Enabled = ad.Enabled,
+                    VideoExists = exists,
+                    UserCanSeeVideo = visible,
+                    HasPlayableMedia = hasMedia,
+                    ScheduleOk = scheduleOk,
+                    UserTargeted = userOk,
+                    WouldPlay = wouldPlay,
+                    Reason = reason
+                });
+            }
+
+            result.WouldPlayCount = result.Ads.Count(a => a.WouldPlay);
+
+            result.Summary = !result.PluginEnabled
+                ? "El interruptor general del plugin («1 · Configuración general → Activar el plugin») está apagado."
+                : !result.PrerollEnabled
+                    ? "El pre-roll está apagado en «3 · Anuncios antes de reproducir → Activar anuncios antes de reproducir»."
+                    : !result.AppliesToContentType
+                        ? "«Aplicar a» no incluye este tipo de contenido para este vídeo de prueba."
+                        : !result.FrequencyAllowsNow
+                            ? "La frecuencia «una vez al día» ya se cumplió hoy para este usuario."
+                            : result.TotalAds == 0
+                                ? "No hay ningún vídeo pre-roll creado todavía."
+                                : result.WouldPlayCount > 0
+                                    ? $"El servidor SÍ reproduciría {result.WouldPlayCount} vídeo(s) pre-roll aquí. Si aun así no suena nada en el dispositivo, el problema es «Modo Cine» (apagado, o el reproductor no llega a pedirlo) — no la configuración del plugin."
+                                    : "Ningún vídeo pre-roll cumple todas las condiciones ahora mismo; revisa la columna «Motivo» de cada uno.";
+
             return result;
         }
 

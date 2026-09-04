@@ -1,7 +1,7 @@
 ---
 name: "Jellyfin Startup Ads"
 guid: "6d1a9b6e-6b3e-4f9a-9c2d-3a7f1e2c4b90"
-version: "1.4.3.0"
+version: "1.4.4.0"
 targetAbi: "10.11.0.0"
 framework: "net9.0"
 owner: "franciscocolon22"
@@ -16,11 +16,11 @@ category: "General"
 artifacts:
   - "Jellyfin.Plugin.StartupAds.dll"
 changelog: >-
-  v1.4.3 — Con «Modo Cine» ya activado, "No ha sido posible encontrar un medio
-  válido para reproducir" al darle a Play: casi siempre es que la biblioteca del
-  pre-roll no está habilitada para ese usuario (Dashboard → Usuarios → Acceso a
-  bibliotecas). El plugin ahora se protege solo: antes de entregar un pre-roll
-  comprueba que el usuario puede verlo (Video.IsVisibleStandalone) y que tiene
-  una fuente de medios reproducible; si no, lo omite y el contenido se reproduce
-  con normalidad en vez de fallar. Incluye v1.4.2 (botón corregido + guía de
-  Modo Cine), v1.4.1 y v1.4.0.
+  v1.4.4 — Nueva herramienta de diagnóstico en la sección de pre-roll: elige una
+  película/episodio y un usuario, pulsa "Probar" y el servidor ejecuta la misma
+  lógica exacta de una reproducción real, explicando ad por ad si se mostraría y
+  por qué no (desactivado, fuera de horario, sin acceso a la biblioteca del
+  vídeo, sin fuente de medios, frecuencia ya usada hoy...). Si dice que SÍ se
+  reproduciría y aun así no suena nada, el problema es "Modo Cine" del cliente,
+  no el plugin. Incluye v1.4.3 (protección por permisos de biblioteca), v1.4.2
+  (botón corregido + guía de Modo Cine) y v1.4.1.

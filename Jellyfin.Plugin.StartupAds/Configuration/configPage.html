@@ -340,6 +340,30 @@
                     </table>
                 </div>
                 <p id="prNoAds" class="fieldDescription" hidden>No hay pre-rolls. Añade uno eligiendo un vídeo de tu biblioteca.</p>
+
+                <h3 style="margin-top:1.4em;">Diagnóstico: ¿por qué no se reproduce?</h3>
+                <p class="fieldDescription">
+                    Elige una película o episodio y un usuario, y pulsa «Probar». Se ejecuta en el
+                    servidor la misma lógica que usa Jellyfin al reproducir de verdad, y te dice, uno
+                    por uno, qué pre-roll se mostraría y por qué los demás no. Si dice que SÍ se
+                    reproduciría y aun así no suena nada en el dispositivo, el problema es el ajuste
+                    de «Modo Cine» del cliente, no la configuración del plugin.
+                </p>
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="prDiagSearch">Buscar película o episodio</label>
+                    <input is="emby-input" type="text" id="prDiagSearch" placeholder="título…" />
+                </div>
+                <button is="emby-button" type="button" id="prDiagSearchBtn" class="raised"><span>Buscar</span></button>
+                <div class="selectContainer">
+                    <label class="selectLabel" for="prDiagItem">Contenido</label>
+                    <select is="emby-select" id="prDiagItem"><option value="">(busca y elige)</option></select>
+                </div>
+                <div class="selectContainer">
+                    <label class="selectLabel" for="prDiagUser">Usuario</label>
+                    <select is="emby-select" id="prDiagUser"><option value="">(elige un usuario)</option></select>
+                </div>
+                <button is="emby-button" type="button" id="prDiagRun" class="raised"><span>Probar</span></button>
+                <div id="prDiagResult" style="margin-top:12px;"></div>
             </form>
 
             <!-- ================= AD EDITOR (moved to <body> at runtime) ================= -->
@@ -877,8 +901,103 @@
                     .catch(function () { state.files = []; });
             }
             function loadUsers() {
-                return apiClient().getUsers().then(function (u) { state.users = u || []; })
-                    .catch(function () { state.users = []; });
+                return apiClient().getUsers().then(function (u) {
+                    state.users = u || [];
+                    var sel = q(state.view, 'prDiagUser');
+                    if (sel) {
+                        sel.textContent = '';
+                        var none = document.createElement('option');
+                        none.value = ''; none.textContent = '(elige un usuario)';
+                        sel.appendChild(none);
+                        state.users.forEach(function (usr) {
+                            var o = document.createElement('option');
+                            o.value = usr.Id; o.textContent = usr.Name;
+                            sel.appendChild(o);
+                        });
+                    }
+                }).catch(function () { state.users = []; });
+            }
+
+            /* ---------------- pre-roll diagnostics ---------------- */
+            function prDiagSearch() {
+                var term = val('prDiagSearch').trim();
+                var sel = q(state.view, 'prDiagItem');
+                sel.textContent = '';
+                var loading = document.createElement('option');
+                loading.value = ''; loading.textContent = 'Buscando…';
+                sel.appendChild(loading);
+                req('GET', 'Admin/Preroll/ContentCandidates' + (term ? '?q=' + encodeURIComponent(term) : ''))
+                    .then(function (items) {
+                        sel.textContent = '';
+                        var none = document.createElement('option');
+                        none.value = ''; none.textContent = (items && items.length) ? '(elige)' : '(sin resultados)';
+                        sel.appendChild(none);
+                        (items || []).forEach(function (it) {
+                            var o = document.createElement('option');
+                            o.value = it.Id; o.textContent = it.Name + ' [' + it.Type + ']';
+                            sel.appendChild(o);
+                        });
+                    })
+                    .catch(function (err) {
+                        sel.textContent = '';
+                        var o = document.createElement('option'); o.value = ''; o.textContent = errText(err);
+                        sel.appendChild(o);
+                    });
+            }
+
+            function prDiagRun() {
+                var itemId = val('prDiagItem');
+                var userId = val('prDiagUser');
+                var out = q(state.view, 'prDiagResult');
+                if (!itemId || !userId) {
+                    out.textContent = 'Elige un contenido y un usuario.';
+                    out.style.color = '#ffa726';
+                    return;
+                }
+                out.textContent = 'Probando…';
+                out.style.color = '';
+                req('GET', 'Admin/Preroll/Diagnose?itemId=' + encodeURIComponent(itemId) + '&userId=' + encodeURIComponent(userId))
+                    .then(function (r) {
+                        out.textContent = '';
+                        var summary = document.createElement('p');
+                        summary.className = 'fieldDescription';
+                        summary.style.color = r.WouldPlayCount > 0 ? '#66bb6a' : '#ffa726';
+                        summary.style.fontWeight = 'bold';
+                        summary.textContent = r.Summary;
+                        out.appendChild(summary);
+
+                        if (r.Ads && r.Ads.length) {
+                            var wrap = document.createElement('div');
+                            wrap.style.overflowX = 'auto';
+                            var table = document.createElement('table');
+                            table.className = 'tblStartupAds';
+                            table.style.cssText = 'width:100%;min-width:420px;border-collapse:collapse;';
+                            var thead = document.createElement('tr');
+                            thead.style.cssText = 'text-align:left;border-bottom:1px solid rgba(255,255,255,.2);';
+                            ['Vídeo', '¿Se mostraría?', 'Motivo'].forEach(function (t) {
+                                var th = document.createElement('th');
+                                th.style.padding = '6px'; th.textContent = t;
+                                thead.appendChild(th);
+                            });
+                            table.appendChild(thead);
+                            r.Ads.forEach(function (a) {
+                                var tr = document.createElement('tr');
+                                var td1 = document.createElement('td'); td1.style.padding = '6px'; td1.textContent = a.Name;
+                                var td2 = document.createElement('td'); td2.style.padding = '6px';
+                                td2.textContent = a.WouldPlay ? 'Sí' : 'No';
+                                td2.style.color = a.WouldPlay ? '#66bb6a' : '#ff8a80';
+                                var td3 = document.createElement('td'); td3.style.padding = '6px'; td3.textContent = a.Reason;
+                                tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3);
+                                table.appendChild(tr);
+                            });
+                            wrap.appendChild(table);
+                            out.appendChild(wrap);
+                        }
+                    })
+                    .catch(function (err) {
+                        out.textContent = errText(err);
+                        out.style.color = '#ff8a80';
+                    });
             }
 
             function mkBtn(text, cls, fn) {
@@ -1464,6 +1583,11 @@
                 view.querySelector('#prValidateDir').addEventListener('click', prValidateDir);
                 view.querySelector('#prScanDir').addEventListener('click', prScanDir);
                 view.querySelector('#prEnabled').addEventListener('change', updatePrStatusBanner);
+                view.querySelector('#prDiagSearchBtn').addEventListener('click', function (e) { e.preventDefault(); prDiagSearch(); });
+                view.querySelector('#prDiagSearch').addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') { e.preventDefault(); prDiagSearch(); }
+                });
+                view.querySelector('#prDiagRun').addEventListener('click', function (e) { e.preventDefault(); prDiagRun(); });
 
                 prModal.querySelector('#prCancelEdit').addEventListener('click', closePrEditor);
                 prModal.querySelector('#prModalX').addEventListener('click', closePrEditor);

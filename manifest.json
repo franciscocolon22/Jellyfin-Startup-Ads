@@ -9,6 +9,14 @@
         "imageUrl": "",
         "versions": [
             {
+                "version": "1.4.4.0",
+                "changelog": "Nueva herramienta de diagnóstico en la sección de pre-roll: elige una película/episodio y un usuario, pulsa «Probar» y el servidor ejecuta la misma lógica exacta de una reproducción real, explicando ad por ad si se mostraría y por qué no. Si dice que SÍ se reproduciría y aun así no suena nada, el problema es «Modo Cine» del cliente, no el plugin; si dice que NO, indica justo qué corregir. Incluye v1.4.3/v1.4.2/v1.4.1/v1.4.0.",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/franciscocolon22/Jellyfin-Startup-Ads/releases/download/v1.4.4/jellyfin-startup-ads_1.4.4.0.zip",
+                "checksum": "cfdcc03b6ac2a1284d582af8242ca8e1",
+                "timestamp": "2026-09-04T23:00:00Z"
+            },
+            {
                 "version": "1.4.3.0",
                 "changelog": "Con «Modo Cine» ya activado, algunos usuarios veían al reproducir: «Error de reproducción: No ha sido posible encontrar un medio válido para reproducir». Causa: la biblioteca del pre-roll no estaba habilitada para ese usuario. Solución: Dashboard → Usuarios → (usuario) → Acceso a bibliotecas → habilitarla. El plugin ahora se protege solo: comprueba que el usuario puede ver el vídeo del pre-roll y que tiene una fuente de medios reproducible antes de entregarlo; si no, lo omite y el contenido se reproduce con normalidad en vez de fallar. Incluye v1.4.2/v1.4.1/v1.4.0/v1.3.4.",
                 "targetAbi": "10.11.0.0",

@@ -1,6 +1,6 @@
 # Jellyfin Startup Ads — Guía de configuración y funcionamiento
 
-> Aplica a la versión **1.4.5** del plugin · Jellyfin **10.11.11** · .NET **9**
+> Aplica a la versión **1.4.6** del plugin · Jellyfin **10.11.11** · .NET **9**
 
 > **Estructura de la página de configuración (v1.4.1).** El Dashboard muestra **3 bloques
 > independientes**, cada uno con su propio botón «Guardar»:

@@ -1,7 +1,7 @@
 ---
 name: "Jellyfin Startup Ads"
 guid: "6d1a9b6e-6b3e-4f9a-9c2d-3a7f1e2c4b90"
-version: "1.4.5.0"
+version: "1.4.6.0"
 targetAbi: "10.11.0.0"
 framework: "net9.0"
 owner: "franciscocolon22"
@@ -16,8 +16,13 @@ category: "General"
 artifacts:
   - "Jellyfin.Plugin.StartupAds.dll"
 changelog: >-
-  v1.4.5 — "Validar carpeta" del pre-roll ya no da un mensaje genérico cuando no
-  encuentra vídeos indexados: ahora comprueba las bibliotecas configuradas en
-  Jellyfin y dice exactamente qué falta - añadir la carpeta como biblioteca, o
-  solo escanear la biblioteca que ya la contiene. Incluye v1.4.4 (herramienta de
-  diagnóstico), v1.4.3 (protección por permisos de biblioteca) y v1.4.2.
+  v1.4.6 — Corrige los acentos rotos ("configuraciÃ³n") que se veían en la
+  descripción del plugin en Jellyfin (Complementos > Jellyfin Startup Ads) y en
+  el historial de versiones tras instalar/actualizar desde cualquier release
+  anterior. Causa: el script de empaquetado leía build/meta.json con
+  Get-Content sin especificar UTF-8; en Windows PowerShell 5.1 eso usa la
+  codepage ANSI del sistema para un archivo UTF-8 sin BOM y corrompe cada
+  tilde/eñe al reempaquetarlo dentro del ZIP. Los archivos fuente en el
+  repositorio siempre estuvieron en UTF-8 correcto; el problema solo afectaba
+  al ZIP generado. Incluye v1.4.5 ("Validar carpeta" explica qué falta), v1.4.4
+  (diagnóstico) y v1.4.3.

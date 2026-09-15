@@ -1,14 +1,14 @@
 {
     "category": "General",
-    "changelog": "v1.4.5 — «Validar carpeta» del pre-roll ya no responde con un mensaje genérico («La carpeta existe, pero Jellyfin no tiene ningún vídeo indexado en ella») cuando no encuentra vídeos: ahora consulta las bibliotecas configuradas en Jellyfin (ILibraryManager.GetVirtualFolders) y dice exactamente qué falta — si la carpeta no pertenece a ninguna biblioteca, indica ir a Dashboard → Bibliotecas → Añadir biblioteca con esa ruta; si ya pertenece a una biblioteca pero aún no se ha escaneado, indica el nombre exacto de esa biblioteca y que hay que escanearla. Incluye v1.4.4 (herramienta de diagnóstico «¿por qué no se reproduce?»), v1.4.3 (protección automática por permisos de biblioteca) y v1.4.2 (botón «Crear anuncio» corregido + guía de «Modo Cine»).",
+    "changelog": "v1.4.6 — Corrige los acentos rotos («configuraciÃ³n» en vez de «configuración») que se veían en la descripción del plugin dentro de Jellyfin (Complementos → Jellyfin Startup Ads) y en el historial de versiones tras instalar o actualizar desde cualquier release anterior. Causa raíz: el script de empaquetado (build/package.ps1) leía build/meta.json con Get-Content sin indicar la codificación; en Windows PowerShell 5.1 eso usa la codepage ANSI del sistema para leer un archivo UTF-8 sin BOM, corrompiendo cada tilde/eñe al volver a escribirlo dentro del ZIP. Los archivos fuente del repositorio (incluido este meta.json) siempre estuvieron en UTF-8 correcto — el problema solo afectaba al contenido del ZIP publicado, nunca a git. A partir de esta versión el script fuerza la lectura en UTF-8 (Get-Content -Encoding UTF8), así que los acentos se conservan correctamente en el paquete instalado. Incluye v1.4.5 («Validar carpeta» explica exactamente qué falta), v1.4.4 (herramienta de diagnóstico «¿por qué no se reproduce?») y v1.4.3 (protección automática por permisos de biblioteca).",
     "description": "Dos sistemas de anuncios independientes para Jellyfin, con la configuración separada en 3 bloques (General / Presentación / Pre-roll): (1) overlay multimedia al abrir Jellyfin Web y (2) pre-roll de vídeos de la biblioteca antes de cada película o episodio (apps nativas incluidas), con su propia carpeta de vídeos, validación explicativa, importación, protección de permisos y una herramienta de diagnóstico integrada.",
     "guid": "6d1a9b6e-6b3e-4f9a-9c2d-3a7f1e2c4b90",
     "name": "Jellyfin Startup Ads",
     "overview": "Anuncios al iniciar Jellyfin Web y pre-roll antes de cada vídeo.",
     "owner": "franciscocolon22",
     "targetAbi": "10.11.0.0",
-    "version": "1.4.5.0",
-    "timestamp": "2026-09-15T15:00:00Z",
+    "version": "1.4.6.0",
+    "timestamp": "2026-09-15T16:30:00Z",
     "status": "Active",
     "autoUpdate": true
 }

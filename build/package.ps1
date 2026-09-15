@@ -2,10 +2,10 @@
     Builds a Jellyfin-installable ZIP for Jellyfin Startup Ads and refreshes manifest.json
     with the real MD5 checksum and file size.
 
-    Usage:  pwsh ./build/package.ps1 [-Version 1.4.5.0]
+    Usage:  pwsh ./build/package.ps1 [-Version 1.4.6.0]
 #>
 param(
-    [string]$Version = "1.4.5.0"
+    [string]$Version = "1.4.6.0"
 )
 
 $ErrorActionPreference = "Stop"
@@ -13,7 +13,7 @@ $repo = Split-Path -Parent $PSScriptRoot
 $proj = Join-Path $repo "Jellyfin.Plugin.StartupAds/Jellyfin.Plugin.StartupAds.csproj"
 $artifacts = Join-Path $repo "artifacts"
 $stage = Join-Path $artifacts "stage"
-$tag = "v" + ($Version -replace '\.\d+$','')          # 1.4.5.0 -> v1.4.5
+$tag = "v" + ($Version -replace '\.\d+$','')          # 1.4.6.0 -> v1.4.6
 $zipName = "jellyfin-startup-ads_$Version.zip"
 $zipPath = Join-Path $artifacts $zipName
 
@@ -29,7 +29,12 @@ Get-ChildItem $stage -Exclude "Jellyfin.Plugin.StartupAds.dll" | Remove-Item -Re
 
 # meta.json is copied verbatim (its 'timestamp' is the fixed release timestamp) so the
 # resulting ZIP - and therefore its checksum - is reproducible.
-$metaRaw = Get-Content (Join-Path $repo "build/meta.json") -Raw
+# IMPORTANT: -Encoding UTF8 is required here. Windows PowerShell 5.1's Get-Content
+# silently falls back to the system ANSI codepage for a BOM-less UTF-8 file (which is
+# what meta.json is), mangling every accented character ("configuración" -> "configuraciÃ³n")
+# into the packaged ZIP - this is what showed up as garbled text in Jellyfin's plugin
+# details / version history after installing.
+$metaRaw = Get-Content (Join-Path $repo "build/meta.json") -Raw -Encoding UTF8
 $meta = $metaRaw | ConvertFrom-Json
 [System.IO.File]::WriteAllText((Join-Path $stage "meta.json"), $metaRaw, (New-Object System.Text.UTF8Encoding($false)))
 
@@ -64,7 +69,7 @@ $summary = [ordered]@{
     timestamp   = $meta.timestamp
     sourceUrl   = "https://github.com/franciscocolon22/Jellyfin-Startup-Ads/releases/download/$tag/$zipName"
 }
-($summary | ConvertTo-Json) | Set-Content (Join-Path $artifacts "release-info.json") -Encoding ascii
+($summary | ConvertTo-Json) | Set-Content (Join-Path $artifacts "release-info.json") -Encoding UTF8
 
 Write-Host "==> Done."
 Write-Host "    ZIP:   $zipPath"

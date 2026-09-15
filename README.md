@@ -12,12 +12,34 @@ desde el Dashboard, con controles de seguridad adecuados.
 |---|---|
 | Jellyfin | **10.11.11** (targetAbi `10.11.0.0`) |
 | .NET | **9.0** |
-| Versión del plugin | **1.4.5.0** |
+| Versión del plugin | **1.4.6.0** |
 | Paquetes | `Jellyfin.Controller` / `Jellyfin.Model` 10.11.11 (`ExcludeAssets=runtime`) |
 | Licencia | MIT |
 
 > 📖 **Guía completa de configuración y funcionamiento** (qué hace cada opción y qué
 > se ejecuta en runtime): [`docs/CONFIGURACION.md`](docs/CONFIGURACION.md)
+
+---
+
+## Novedad v1.4.6 — corrige los acentos rotos («configuraciÃ³n») en el plugin instalado
+
+Reportado: la descripción del plugin en **Dashboard → Complementos → Jellyfin Startup
+Ads** (y su historial de versiones) se veía con los acentos rotos, por ejemplo
+`configuraciÃ³n` en vez de `configuración`, `vÃ­deo` en vez de `vídeo`, etc.
+
+**Causa raíz (no era un problema de git ni de los archivos fuente):** el script de
+empaquetado (`build/package.ps1`) leía `build/meta.json` con `Get-Content` sin indicar
+la codificación. `build/meta.json` es UTF-8 **sin BOM** (marca de orden de bytes), y
+**Windows PowerShell 5.1** — a diferencia de PowerShell 7 — para un archivo así usa por
+defecto **la codepage ANSI del sistema** en vez de UTF-8. Cada tilde/eñe (2 bytes en
+UTF-8) se leía como dos caracteres sueltos y se volvía a escribir mal dentro del ZIP.
+El repositorio en GitHub, el `manifest.json` y todo el código fuente **siempre
+estuvieron correctamente en UTF-8**; el problema solo afectaba al `meta.json` empaquetado
+dentro de cada ZIP publicado (es decir, a **todas** las versiones publicadas hasta
+ahora, desde la v1.1.0).
+
+**Arreglo:** `Get-Content -Encoding UTF8` explícito. Verificado extrayendo el ZIP
+publicado y comprobando los bytes del `meta.json` resultante antes de subirlo.
 
 ---
 

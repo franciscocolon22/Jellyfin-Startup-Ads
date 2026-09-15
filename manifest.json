@@ -9,6 +9,14 @@
         "imageUrl": "",
         "versions": [
             {
+                "version": "1.4.6.0",
+                "changelog": "Corrige los acentos rotos («configuraciÃ³n» en vez de «configuración») que se veían en la descripción del plugin dentro de Jellyfin y en el historial de versiones tras instalar/actualizar desde cualquier release anterior. Causa raíz: el script de empaquetado leía build/meta.json sin indicar la codificación; en Windows PowerShell 5.1 eso usa la codepage ANSI del sistema para un archivo UTF-8 sin BOM y corrompía cada tilde/eñe al reempaquetarlo dentro del ZIP. Los archivos fuente del repositorio siempre estuvieron en UTF-8 correcto — el problema solo afectaba al ZIP publicado. Ya está forzada la lectura en UTF-8. Incluye v1.4.5/v1.4.4/v1.4.3.",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/franciscocolon22/Jellyfin-Startup-Ads/releases/download/v1.4.6/jellyfin-startup-ads_1.4.6.0.zip",
+                "checksum": "33b0c2c94a6659f9732d6a3bf7c4abfc",
+                "timestamp": "2026-09-15T16:30:00Z"
+            },
+            {
                 "version": "1.4.5.0",
                 "changelog": "«Validar carpeta» del pre-roll ya no da un mensaje genérico cuando no encuentra vídeos indexados: comprueba las bibliotecas configuradas en Jellyfin y dice exactamente qué falta — añadir la carpeta como biblioteca (con el nombre exacto de la ruta a usar), o solo escanear la biblioteca que ya la contiene (con su nombre). Incluye v1.4.4 (herramienta de diagnóstico), v1.4.3 (protección por permisos de biblioteca) y v1.4.2/v1.4.1/v1.4.0.",
                 "targetAbi": "10.11.0.0",

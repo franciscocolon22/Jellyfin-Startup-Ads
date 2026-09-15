@@ -12,12 +12,30 @@ desde el Dashboard, con controles de seguridad adecuados.
 |---|---|
 | Jellyfin | **10.11.11** (targetAbi `10.11.0.0`) |
 | .NET | **9.0** |
-| Versión del plugin | **1.4.4.0** |
+| Versión del plugin | **1.4.5.0** |
 | Paquetes | `Jellyfin.Controller` / `Jellyfin.Model` 10.11.11 (`ExcludeAssets=runtime`) |
 | Licencia | MIT |
 
 > 📖 **Guía completa de configuración y funcionamiento** (qué hace cada opción y qué
 > se ejecuta en runtime): [`docs/CONFIGURACION.md`](docs/CONFIGURACION.md)
+
+---
+
+## Novedad v1.4.5 — «Validar carpeta» dice ahora exactamente qué falta
+
+Si «Validar carpeta» del pre-roll respondía **«La carpeta existe, pero Jellyfin no
+tiene ningún vídeo indexado en ella»**, el mensaje no distinguía entre dos causas muy
+distintas. Ahora sí:
+
+- **La carpeta no pertenece a ninguna biblioteca** → hay que ir a **Dashboard →
+  Bibliotecas → Añadir biblioteca** (o editar una existente) y añadir esa ruta exacta.
+- **Ya pertenece a una biblioteca, pero falta escanearla** → hay que ir a **Dashboard
+  → Bibliotecas → (esa biblioteca) → menú ⋮ → Escanear biblioteca**.
+
+En los dos casos, tener el archivo de vídeo en el disco **no basta**: Jellyfin solo
+puede ofrecer como pre-roll un vídeo que ya haya **indexado** dentro de una de sus
+bibliotecas, y eso requiere que la carpeta esté dada de alta como biblioteca **y**
+que se haya escaneado al menos una vez después de copiar los archivos.
 
 ---
 

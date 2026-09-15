@@ -419,8 +419,7 @@ namespace Jellyfin.Plugin.StartupAds.Api
             if (indexed == 0)
             {
                 result.Ok = false;
-                result.Message = "La carpeta existe, pero Jellyfin no tiene ningún vídeo indexado en ella. "
-                    + "Añádela como biblioteca (o parte de una) y ejecuta un escaneo de la biblioteca.";
+                result.Message = DescribeWhyNotIndexed(req.Path);
             }
             else
             {
@@ -524,6 +523,42 @@ namespace Jellyfin.Plugin.StartupAds.Api
                 });
 
             return Ok(result);
+        }
+
+        /// <summary>
+        /// The generic "no video indexed" message leaves the admin guessing between two very
+        /// different fixes (add the folder to a library vs. just scan the library that already
+        /// has it), so this tells them which one applies by checking Jellyfin's configured
+        /// libraries directly.
+        /// </summary>
+        private string DescribeWhyNotIndexed(string? directory)
+        {
+            try
+            {
+                var folders = _libraryManager.GetVirtualFolders();
+                var covering = folders.FirstOrDefault(f =>
+                    f.Locations.Any(loc =>
+                        MediaFileService.PathIsInside(directory, loc)
+                        || MediaFileService.PathIsInside(loc, directory)
+                        || string.Equals(loc, directory, StringComparison.OrdinalIgnoreCase)));
+
+                if (covering is not null)
+                {
+                    return $"La carpeta ya forma parte de la biblioteca «{covering.Name}», pero Jellyfin "
+                        + "todavía no tiene ningún vídeo indexado de ahí (archivos recién copiados, "
+                        + "extensión no soportada por Jellyfin, o falta escanear). Ve a Dashboard → "
+                        + $"Bibliotecas → «{covering.Name}» → menú (⋮) → Escanear biblioteca, y vuelve a validar.";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[StartupAds] No se pudo comprobar a qué biblioteca pertenece la carpeta de pre-roll.");
+            }
+
+            return "Esta carpeta no forma parte de ninguna biblioteca de Jellyfin todavía. Ve a Dashboard → "
+                + "Bibliotecas → Añadir biblioteca (o edita una existente) y añade esta ruta exacta como "
+                + "carpeta; después ejecuta un escaneo. Solo entonces Jellyfin podrá indexar los vídeos "
+                + "de aquí y ofrecerlos como pre-roll.";
         }
 
         private int CountLibraryVideosIn(string? directory)

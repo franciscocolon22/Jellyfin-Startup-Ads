@@ -1,6 +1,6 @@
 # Jellyfin Startup Ads — Guía de configuración y funcionamiento
 
-> Aplica a la versión **1.4.4** del plugin · Jellyfin **10.11.11** · .NET **9**
+> Aplica a la versión **1.4.5** del plugin · Jellyfin **10.11.11** · .NET **9**
 
 > **Estructura de la página de configuración (v1.4.1).** El Dashboard muestra **3 bloques
 > independientes**, cada uno con su propio botón «Guardar»:
@@ -633,6 +633,20 @@ tenga indexado). Es **independiente** de la carpeta de la presentación.
 Con la carpeta fijada, el **buscador de «Añadir pre-roll»** (`Admin/Preroll/Candidates`)
 solo devuelve vídeos que estén dentro de ella. Si la dejas vacía, se busca en toda la
 biblioteca (comportamiento de v1.4.0).
+
+**«La carpeta existe, pero Jellyfin no tiene ningún vídeo indexado en ella» (v1.4.5).**
+«Validar carpeta» ahora distingue las dos causas posibles y te dice cuál es, en vez de
+un mensaje genérico:
+
+- **La carpeta no pertenece a ninguna biblioteca todavía** → hay que ir a
+  **Dashboard → Bibliotecas → Añadir biblioteca** (o editar una existente) y añadir esa
+  ruta **exacta** como carpeta de contenido.
+- **La carpeta ya pertenece a una biblioteca, pero Jellyfin aún no ha indexado nada de
+  ahí** (archivos recién copiados, o simplemente falta un escaneo) → hay que ir a
+  **Dashboard → Bibliotecas → (esa biblioteca) → menú ⋮ → Escanear biblioteca**.
+
+En ambos casos hace falta un **escaneo de la biblioteca** después de crear/editarla:
+añadir la carpeta no indexa los archivos al instante.
 
 ### 13.3. Ajustes generales del pre-roll
 

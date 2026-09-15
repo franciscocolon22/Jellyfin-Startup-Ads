@@ -1,7 +1,7 @@
 ---
 name: "Jellyfin Startup Ads"
 guid: "6d1a9b6e-6b3e-4f9a-9c2d-3a7f1e2c4b90"
-version: "1.4.4.0"
+version: "1.4.5.0"
 targetAbi: "10.11.0.0"
 framework: "net9.0"
 owner: "franciscocolon22"
@@ -16,11 +16,8 @@ category: "General"
 artifacts:
   - "Jellyfin.Plugin.StartupAds.dll"
 changelog: >-
-  v1.4.4 — Nueva herramienta de diagnóstico en la sección de pre-roll: elige una
-  película/episodio y un usuario, pulsa "Probar" y el servidor ejecuta la misma
-  lógica exacta de una reproducción real, explicando ad por ad si se mostraría y
-  por qué no (desactivado, fuera de horario, sin acceso a la biblioteca del
-  vídeo, sin fuente de medios, frecuencia ya usada hoy...). Si dice que SÍ se
-  reproduciría y aun así no suena nada, el problema es "Modo Cine" del cliente,
-  no el plugin. Incluye v1.4.3 (protección por permisos de biblioteca), v1.4.2
-  (botón corregido + guía de Modo Cine) y v1.4.1.
+  v1.4.5 — "Validar carpeta" del pre-roll ya no da un mensaje genérico cuando no
+  encuentra vídeos indexados: ahora comprueba las bibliotecas configuradas en
+  Jellyfin y dice exactamente qué falta - añadir la carpeta como biblioteca, o
+  solo escanear la biblioteca que ya la contiene. Incluye v1.4.4 (herramienta de
+  diagnóstico), v1.4.3 (protección por permisos de biblioteca) y v1.4.2.
